@@ -50,73 +50,106 @@
 html, body {
   width: 100%;
   height: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   background-color: #080b0e;
   font-family: var(--font-ui);
   color: #ffffff;
 }
 
-/* App Container - Centered Mobile Screen */
+/* App Container - 100vw 스크롤 컨테이너 (모바일 등 좁은 화면에서 가로 스크롤 발생) */
 .game-container {
-  width: 100%;
-  max-width: 440px;
+  width: 100vw;
+  max-width: 100vw;
   height: 100vh;
   height: 100dvh;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   background: #080b0e;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+  overflow-x: auto; /* 좁은 화면에서만 부드러운 가로 스크롤 발생 */
+  overflow-y: hidden;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.95);
+  box-sizing: border-box;
+  padding: 8px 16px 120px 16px; /* 하단 고정 버튼에 카드가 가려지지 않도록 120px 여백 확보 */
 }
 
 /* ==========================================================================
-   Poker Table Core
+   Real Horizontal Oval Casino Poker Table (800px ~ 1000px Proportion)
    ========================================================================== */
 .poker-table {
-  flex: 1;
+  width: 100%;
+  min-width: 800px;
+  max-width: 1000px;
+  height: calc(100vh - 140px);
+  height: calc(100dvh - 140px);
+  max-height: 500px;
+  min-height: 380px;
   position: relative;
   display: flex;
   flex-direction: column;
-  margin: 8px 8px 4px 8px;
-  padding: 6px;
-  border-radius: 36px;
-  background: var(--leather-gradient);
+  margin: 0 auto;
+  padding: 14px;
+  box-sizing: border-box;
+  /* 옆으로 널찍한 황금비율 타원형(Horizontal Oval) */
+  border-radius: 240px / 150px;
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
+    linear-gradient(135deg, #442416 0%, #2b150a 45%, #180903 100%);
+  border: 12px solid #200f07;
+  outline: 2px solid rgba(212, 175, 55, 0.45);
+  /* 두툼하고 고급스러운 브라운 가죽 쿠션 질감 및 3D 입체 음영 */
   box-shadow: 
-    inset 0 2px 4px rgba(255, 255, 255, 0.15),
-    inset 0 -3px 8px rgba(0, 0, 0, 0.8),
-    0 10px 25px rgba(0, 0, 0, 0.7);
-  border: 2px solid #3d2316;
-  min-height: 0;
-}
-
-/* Table Felt - Rich Green Luxury Felt */
-.table-felt {
-  flex: 1;
-  position: relative;
-  border-radius: 30px;
-  background: radial-gradient(ellipse at 50% 48%, var(--felt-green-light) 0%, var(--felt-green-base) 60%, var(--felt-green-deep) 100%);
-  border: 2px solid rgba(212, 175, 55, 0.65);
-  box-shadow: 
-    inset 0 0 24px rgba(0, 0, 0, 0.7),
-    inset 0 0 5px rgba(212, 175, 55, 0.4),
-    0 0 0 1px rgba(0, 0, 0, 0.6);
-  display: flex;
-  flex-direction: column;
+    0 24px 60px rgba(0, 0, 0, 0.95),
+    0 8px 24px rgba(0, 0, 0, 0.85),
+    inset 0 3px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -12px 24px rgba(0, 0, 0, 0.95),
+    inset 0 0 22px rgba(10, 5, 2, 0.98);
+  min-height: 400px;
   overflow: hidden;
 }
 
-/* Gold Felt Inner Trim Line */
+/* Table Rail - 가죽 레일 스티칭(Stitching) 및 쿠션 디테일 */
+.table-rail {
+  position: absolute;
+  inset: 2px;
+  border-radius: 228px / 138px;
+  border: 1.5px dashed rgba(212, 175, 55, 0.28);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Table Felt - 깊이감 있는 실제 카지노 벨벳 펠트천 (Radial Gradient & Vignette) */
+.table-felt {
+  flex: 1;
+  position: relative;
+  border-radius: 215px / 125px;
+  background: radial-gradient(ellipse at 50% 50%, #1a8b3f 0%, #0d632a 38%, #06441b 72%, #02220c 100%);
+  border: 2px solid rgba(212, 175, 55, 0.7);
+  box-shadow: 
+    inset 0 0 60px rgba(0, 0, 0, 0.85),
+    inset 0 0 20px rgba(1, 22, 7, 0.95),
+    0 0 0 1px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* Gold Felt Inner Trim Line - 가로형 타원 금박 베팅 라인 */
 .table-felt::before {
   content: '';
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 6px;
-  right: 6px;
-  border-radius: 24px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  top: 12px;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  border-radius: 203px / 113px;
+  border: 1.5px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15), inset 0 0 10px rgba(212, 175, 55, 0.15);
   pointer-events: none;
 }
 
@@ -138,7 +171,7 @@ html, body {
   gap: 5px;
   padding: 2px 10px;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(212, 175, 55, 0.4);
   backdrop-filter: blur(4px);
 }
@@ -159,7 +192,7 @@ html, body {
 }
 
 /* ==========================================================================
-   4-Player Seats System (Oval Perimeter)
+   6-Player Seats System (1200px Wide Oval Perimeter)
    ========================================================================== */
 .seat {
   position: absolute;
@@ -169,36 +202,52 @@ html, body {
   z-index: 3;
 }
 
-/* Top Seat: Bot 2 */
-.seat-top {
-  top: 36px;
-  left: 50%;
+/* 상단 좌측: Bot 2 */
+.seat-top-left {
+  top: 24px;
+  left: 32%;
   transform: translateX(-50%);
   gap: 4px;
 }
 
-/* Left Seat: Bot 1 */
+/* 상단 우측: Bot 3 */
+.seat-top-right {
+  top: 24px;
+  left: 68%;
+  transform: translateX(-50%);
+  gap: 4px;
+}
+
+/* 좌측 측면: Bot 1 */
 .seat-left {
-  top: 34%;
-  left: 8px;
+  top: 48%;
+  left: 45px;
   transform: translateY(-50%);
   gap: 4px;
 }
 
-/* Right Seat: Bot 3 */
+/* 우측 측면: Bot 4 */
 .seat-right {
-  top: 34%;
-  right: 8px;
+  top: 48%;
+  right: 45px;
   transform: translateY(-50%);
   gap: 4px;
 }
 
-/* Bottom Seat: Player 1 (Main Player) */
+/* 하단 좌측: Bot 5 (내 옆) */
+.seat-bottom-left {
+  bottom: 22px;
+  left: 24%;
+  transform: translateX(-50%);
+  gap: 4px;
+}
+
+/* 하단 중앙: Player 1 (내 자리) */
 .seat-bottom {
-  bottom: 8px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
+  width: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -254,7 +303,7 @@ html, body {
 }
 
 .card-facedown {
-  width: 32px;
+  width: 34px;
   aspect-ratio: 5 / 7;
   border-radius: 4px;
   background: var(--card-back-red);
@@ -315,8 +364,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: calc(100% - 150px);
-  max-width: 250px;
+  width: calc(100% - 170px);
+  max-width: 320px;
   z-index: 2;
 }
 
@@ -374,12 +423,12 @@ html, body {
 }
 
 .community-slots {
-  gap: 5px;
+  gap: 8px;
 }
 
 .player-slots {
-  gap: 12px;
-  margin-bottom: 2px;
+  gap: 14px;
+  margin-bottom: 3px;
 }
 
 /* Card Slot Base */
@@ -401,14 +450,14 @@ html, body {
 /* Community Slots sizing */
 .community-slots .card-slot {
   flex: 1;
-  max-width: 44px;
-  min-width: 34px;
+  max-width: 52px;
+  min-width: 42px;
 }
 
 /* Player Hand 2 Slots sizing (prominent and clear) */
 .player-slots .player-card-slot {
-  width: 68px;
-  max-width: 74px;
+  width: 74px;
+  max-width: 80px;
   border-radius: 9px;
   border-width: 2px;
   border-color: rgba(251, 224, 130, 0.75);
@@ -635,6 +684,13 @@ html, body {
   animation: tagPopAnim 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
 }
 
+.player-section .seat-action-tag {
+  top: -16px;
+  font-size: 0.7rem;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
 .seat-action-tag.tag-raise {
   background: var(--gold-gradient);
   color: #1a1002;
@@ -659,27 +715,33 @@ html, body {
 }
 
 /* ==========================================================================
-   Betting Action Bar (Bottom Navigation)
+   Betting Action Bar (Bottom Navigation - Fixed Viewport Bottom)
    ========================================================================== */
 .betting-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px;
-  background: linear-gradient(180deg, rgba(13, 17, 23, 0.95) 0%, rgba(7, 10, 14, 0.98) 100%);
-  border-top: 1px solid rgba(212, 175, 55, 0.35);
+  z-index: 100;
+  box-sizing: border-box;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)) 16px;
+  background: #080c10; /* 카드와 겹쳐 보이지 않는 깔끔한 어두운 배경색 */
+  border-top: 1.5px solid rgba(212, 175, 55, 0.45);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
-  z-index: 10;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
+  gap: 12px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.85);
 }
 
 /* Action Buttons */
 .action-btn {
   flex: 1;
-  height: 52px;
+  max-width: 180px;
+  min-width: 80px;
+  height: 54px;
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -688,32 +750,32 @@ html, body {
   outline: none;
   font-family: var(--font-ui);
   box-shadow: 
-    0 4px 10px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    0 4px 12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
   transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
 
 .action-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
   filter: brightness(0.9);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .btn-text {
   font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
   color: #ffffff;
   line-height: 1.1;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .btn-subtext {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.85);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* Individual Button Palettes */
@@ -747,11 +809,201 @@ html, body {
   box-shadow: 0 0 12px rgba(241, 196, 15, 0.45);
 }
 
+/* 불타는 듯한 붉은색 ALL-IN (올인) 버튼 */
+.btn-allin {
+  background: linear-gradient(135deg, #ff2a2a 0%, #ff5e3a 50%, #b30000 100%);
+  border-color: #ff7f50;
+  box-shadow: 
+    0 4px 15px rgba(255, 42, 42, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  animation: allInPulse 1.6s infinite alternate;
+}
+
+.btn-allin:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 20px rgba(255, 42, 42, 0.8);
+}
+
+@keyframes allInPulse {
+  0% {
+    box-shadow: 0 3px 12px rgba(255, 42, 42, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(255, 75, 43, 0.85), inset 0 1px 4px rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* ==========================================================================
+   맞춤형 레이즈 슬라이더 패널 (Custom Raise UI Panel)
+   ========================================================================== */
+.raise-slider-panel {
+  position: fixed;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 540px;
+  background: #0c1218;
+  border: 2px solid var(--gold-primary);
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 150;
+  box-shadow: 
+    0 -8px 25px rgba(0, 0, 0, 0.9),
+    0 0 16px rgba(212, 175, 55, 0.35);
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+  animation: panelSlideUp 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.2) forwards;
+}
+
+@keyframes panelSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.raise-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.raise-title {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.raise-amount-badge {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--gold-light);
+  background: rgba(2, 22, 8, 0.85);
+  border: 1px solid var(--gold-primary);
+  padding: 2px 14px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.raise-slider-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-limit-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 44px;
+}
+
+.slider-limit-label:last-child {
+  text-align: right;
+}
+
+#raise-slider {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: #1e293b;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--gold-primary);
+  -webkit-appearance: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+#raise-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--gold-gradient);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+}
+
+.raise-preset-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.preset-btn {
+  flex: 1;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.preset-btn:hover {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: var(--gold-light);
+}
+
+.raise-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.raise-action-cancel,
+.raise-action-confirm {
+  flex: 1;
+  height: 40px;
+  border-radius: 10px;
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+
+.raise-action-cancel {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #e2e8f0;
+}
+
+.raise-action-cancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.raise-action-confirm {
+  background: var(--gold-gradient);
+  border: 1px solid var(--gold-light);
+  color: #1a1002;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
+}
+
+.raise-action-confirm:hover {
+  filter: brightness(1.15);
+}
+
 /* ==========================================================================
    Bot Cards Showdown Face-Up Styles
    ========================================================================== */
 .bot-cards .playing-card {
-  width: 32px;
+  width: 34px;
   aspect-ratio: 5 / 7;
   border-radius: 4px;
   padding: 1px 2px;
@@ -765,7 +1017,7 @@ html, body {
 }
 
 .bot-cards .playing-card.card-tilt-right {
-  margin-left: -14px;
+  margin-left: -15px;
   transform: rotate(6deg);
   z-index: 2;
 }
@@ -787,17 +1039,17 @@ html, body {
    Game Over Modal UI
    ========================================================================== */
 .game-modal {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  display: flex;
+  display: none; /* 평소에는 완전히 숨김 */
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 1000;
   padding: 20px;
 }
 
-.game-modal.hidden {
-  display: none !important;
+.game-modal.active {
+  display: flex !important; /* 쇼다운 결과 시 화면 중앙에 나타남 */
 }
 
 .modal-backdrop {
@@ -876,11 +1128,15 @@ html, body {
   color: var(--gold-light);
 }
 
+/* NEXT HAND (다음 판) 버튼 스타일 */
+#next-hand-btn,
+.next-hand-btn,
 .btn-next-hand {
+  display: block !important;
   width: 100%;
-  height: 48px;
+  height: 50px;
   background: var(--gold-gradient);
-  border: 1px solid var(--gold-light);
+  border: 2px solid var(--gold-light);
   border-radius: 12px;
   font-family: var(--font-display);
   font-size: 0.95rem;
@@ -889,16 +1145,23 @@ html, body {
   color: #1a1202;
   cursor: pointer;
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    0 0 10px rgba(212, 175, 55, 0.4);
-  transition: transform 0.15s ease, filter 0.15s ease;
+    0 4px 15px rgba(0, 0, 0, 0.6),
+    0 0 12px rgba(212, 175, 55, 0.5);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  z-index: 10;
 }
 
+#next-hand-btn:hover,
+.next-hand-btn:hover,
 .btn-next-hand:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.15);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.7);
 }
 
+#next-hand-btn:active,
+.next-hand-btn:active,
 .btn-next-hand:active {
   transform: scale(0.96);
 }
@@ -920,39 +1183,21 @@ html, body {
 }
 
 /* ==========================================================================
-   Small Screen Adjustments
+   Horizontal Scrollbar Styling (Smooth & Luxurious)
    ========================================================================== */
-@media (max-width: 360px) {
-  .poker-table {
-    margin: 4px 4px 2px 4px;
-    border-radius: 26px;
-  }
-  
-  .seat-left {
-    left: 4px;
-  }
-  
-  .seat-right {
-    right: 4px;
-  }
+body::-webkit-scrollbar {
+  height: 8px;
+}
 
-  .table-center-area {
-    width: calc(100% - 130px);
-  }
+body::-webkit-scrollbar-track {
+  background: #080b0e;
+}
 
-  .community-slots .card-slot {
-    min-width: 30px;
-  }
+body::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+  border-radius: 4px;
+}
 
-  .player-slots .player-card-slot {
-    width: 60px;
-  }
-
-  .action-btn {
-    height: 48px;
-  }
-
-  .btn-text {
-    font-size: 0.82rem;
-  }
+body::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.7);
 }

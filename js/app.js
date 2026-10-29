@@ -1,6 +1,6 @@
 /**
  * Texas Hold'em Poker - Game Application
- * Phase 5: AI Bot Intelligence & Sound Effects
+ * Phase 6: Horizontal Oval Table, Custom Raise Slider & ALL-IN Mind Games
  */
 
 // ==========================================================================
@@ -20,7 +20,7 @@ const RANK_VALUES = {
   '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
 };
 
-// 기본 베팅 금액
+// 기본 베팅 단위
 const DEFAULT_BET_AMOUNT = 50;
 
 // ==========================================================================
@@ -45,12 +45,10 @@ function getAudioContext() {
  */
 function playSound(soundId) {
   const audioEl = document.getElementById(soundId);
-  // audio 태그에 실제 유효한 src가 있으면 직접 재생
   if (audioEl && audioEl.src && audioEl.src.length > 5 && !audioEl.src.endsWith('/')) {
     audioEl.currentTime = 0;
     audioEl.play().catch(() => playSynthesizedSound(soundId));
   } else {
-    // 오디오 파일이 없거나 빈 URL일 때 Web Audio API로 짤랑/스윽/승리음 즉석 합성 재생
     playSynthesizedSound(soundId);
   }
 }
@@ -65,7 +63,6 @@ function playSynthesizedSound(type) {
     const now = ctx.currentTime;
 
     if (type === 'sound-bet') {
-      // 칩 짤랑이는 금속성 사운드 (Two metallic chip clinks)
       [0, 0.05].forEach((d, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -79,7 +76,6 @@ function playSynthesizedSound(type) {
         osc.stop(now + d + 0.12);
       });
     } else if (type === 'sound-card') {
-      // 카드를 스윽 딜링/뒤집는 마찰음
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -92,7 +88,6 @@ function playSynthesizedSound(type) {
       osc.start(now);
       osc.stop(now + 0.1);
     } else if (type === 'sound-win') {
-      // 승리 팡파레 (경쾌한 4음 아르페지오: C5 -> E5 -> G5 -> C6)
       const notes = [523.25, 659.25, 783.99, 1046.50];
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
@@ -109,7 +104,7 @@ function playSynthesizedSound(type) {
       });
     }
   } catch (err) {
-    // Non-blocking fallback
+    // Non-blocking
   }
 }
 
@@ -123,21 +118,20 @@ const gameState = {
     { id: 'player1', name: 'PLAYER 1', isHuman: true, chips: 1000, hand: [], isFolded: false, seatId: 'seat-player-1' },
     { id: 'bot1', name: 'Bot 1', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-1' },
     { id: 'bot2', name: 'Bot 2', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-2' },
-    { id: 'bot3', name: 'Bot 3', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-3' }
+    { id: 'bot3', name: 'Bot 3', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-3' },
+    { id: 'bot4', name: 'Bot 4', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-4' },
+    { id: 'bot5', name: 'Bot 5', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-5' }
   ],
   pot: 0,
   currentRound: 'preflop', // 'preflop' -> 'flop' -> 'turn' -> 'river' -> 'showdown'
-  isBettingInProgress: false
+  isBettingInProgress: false,
+  isPlayerAllIn: false
 };
 
 // ==========================================================================
 // 4. 카드 덱 생성 및 셔플 (Deck & Shuffle)
 // ==========================================================================
 
-/**
- * 52장의 트럼프 카드 덱 생성 함수
- * @returns {Array} 52장의 카드 객체 배열
- */
 function createDeck() {
   const deck = [];
   for (const suit of SUITS) {
@@ -156,11 +150,6 @@ function createDeck() {
   return deck;
 }
 
-/**
- * Fisher-Yates 알고리즘을 사용한 카드 덱 무작위 셔플 함수
- * @param {Array} deck - 셔플할 카드 덱
- * @returns {Array} 섞인 카드 덱
- */
 function shuffleDeck(deck) {
   const shuffled = [...deck];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -171,13 +160,47 @@ function shuffleDeck(deck) {
 }
 
 // ==========================================================================
-// 5. 프리플롭(Pre-flop) 홀 카드 딜링 시스템
+// 5. 게임 상태 완벽 리셋 및 딜링 시스템
 // ==========================================================================
 
-/**
- * 지연 함수 (자연스러운 봇 턴 및 연출용)
- */
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * 다음 판 시작을 위한 모든 상태 및 UI 완전 리셋
+ */
+function resetAllGameState() {
+  console.log('--- 🔄 [State Reset] 모든 게임 상태 변수 및 UI를 0으로 초기화합니다. ---');
+
+  gameState.isBettingInProgress = false;
+  gameState.isPlayerAllIn = false;
+  gameState.currentRound = 'preflop';
+  gameState.pot = 0;
+  gameState.communityCards = [];
+
+  gameState.players.forEach(player => {
+    player.hand = [];
+    player.isFolded = false;
+    if (player.chips < DEFAULT_BET_AMOUNT) {
+      player.chips = 1000;
+    }
+  });
+
+  disableActionButtons(false);
+  updateActionButtonsLabel();
+  hideGameModal();
+  closeRaisePanel();
+
+  document.querySelectorAll('.seat').forEach(seat => {
+    seat.classList.remove('folded', 'winner-glow', 'active-turn');
+    const existingTag = seat.querySelector('.seat-action-tag');
+    if (existingTag) existingTag.remove();
+  });
+
+  resetCommunityCards();
+  renderBotCards();
+  updatePotDOM();
+  gameState.players.forEach(p => updatePlayerChipsDOM(p.id));
+}
 
 /**
  * 게임 시작 및 초기 2장 카드 분배 로직
@@ -188,35 +211,12 @@ function dealHoleCards() {
   console.log('==============================================');
 
   playSound('sound-card');
+  resetAllGameState();
 
-  // 1. 52장 덱 생성 및 셔플
   const newDeck = createDeck();
   gameState.deck = shuffleDeck(newDeck);
-  gameState.pot = 0;
-  gameState.communityCards = [];
-  gameState.currentRound = 'preflop';
-  gameState.isBettingInProgress = false;
-
   console.log(`[덱 준비] 52장 트럼프 카드 덱 생성 및 셔플 완료! 남은 카드: ${gameState.deck.length}장`);
 
-  // 2. 플레이어 핸드 및 폴드 상태 초기화
-  gameState.players.forEach(player => {
-    player.hand = [];
-    player.isFolded = false;
-    // 칩 부족 시 기본 $1,000 충전
-    if (player.chips < DEFAULT_BET_AMOUNT) {
-      player.chips = 1000;
-    }
-  });
-
-  // 좌석 UI의 Folded 및 액션 태그 초기화
-  document.querySelectorAll('.seat').forEach(seat => {
-    seat.classList.remove('folded', 'winner-glow', 'active-turn');
-    const existingTag = seat.querySelector('.seat-action-tag');
-    if (existingTag) existingTag.remove();
-  });
-
-  // 3. 텍사스 홀덤 정통 방식: 각 플레이어에게 1장씩 2회 순환 딜링 (총 2장씩 배분)
   for (let round = 1; round <= 2; round++) {
     for (const player of gameState.players) {
       const card = gameState.deck.pop();
@@ -224,7 +224,6 @@ function dealHoleCards() {
     }
   }
 
-  // 4. 딜링 결과 콘솔 로그 출력
   const humanPlayer = gameState.players.find(p => p.isHuman);
   console.log(`[내 패 확인] ${humanPlayer.name}의 홀 카드: [ ${humanPlayer.hand.map(c => c.toString()).join(', ')} ]`);
 
@@ -232,21 +231,16 @@ function dealHoleCards() {
     console.log(`[봇 패 배분] ${bot.name}에게 2장의 카드가 배분되었습니다.`);
   });
 
-  // 5. 화면(DOM) 렌더링 업데이트
-  renderTable();
-  hideGameModal();
+  renderPlayerHand();
+  renderBotCards();
+  disableActionButtons(false);
   updateActionButtonsLabel();
 }
 
 // ==========================================================================
-// 6. 베팅 시스템 (Betting System) & AI 봇 자동 턴 루프
+// 6. 베팅 시스템 (Call, Custom Raise, ALL-IN) & AI 봇 턴 루프
 // ==========================================================================
 
-/**
- * 플레이어 개별 베팅 처리 함수
- * @param {string} playerId - 플레이어 ID
- * @param {number} amount - 베팅 금액
- */
 function executeBet(playerId, amount) {
   const player = gameState.players.find(p => p.id === playerId);
   if (!player || player.chips < amount) return false;
@@ -261,9 +255,12 @@ function executeBet(playerId, amount) {
 }
 
 /**
- * 'CALL(체크/받기)' 버튼 클릭 시 실행되는 핸들러
+ * 통합 플레이어 베팅 핸들러 (Call, Raise, All-In 지원)
+ * @param {number} amount - 베팅 금액
+ * @param {boolean} isAllIn - 올인 여부
+ * @param {'call' | 'raise' | 'allin'} actionType
  */
-async function handlePlayerCall() {
+async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
   if (gameState.isBettingInProgress) {
     console.log('[Notice] 현재 베팅 턴이 진행 중입니다. 잠시만 기다려 주세요.');
     return;
@@ -274,42 +271,67 @@ async function handlePlayerCall() {
     return;
   }
 
-  gameState.isBettingInProgress = true;
-  disableActionButtons(true);
-
-  // 1. Player 1 베팅 실행 ($50)
   const human = gameState.players.find(p => p.isHuman);
-  executeBet(human.id, DEFAULT_BET_AMOUNT);
+  if (!human || human.chips < amount) {
+    console.warn('소지 칩이 부족합니다.');
+    return;
+  }
+
+  gameState.isBettingInProgress = true;
+  gameState.isPlayerAllIn = isAllIn;
+  disableActionButtons(true);
+  closeRaisePanel();
+
+  // 1. 플레이어 베팅 실행
+  executeBet(human.id, amount);
   playSound('sound-bet');
-  console.log(`[내 베팅] ${human.name}이(가) CALL을 선택하여 $${DEFAULT_BET_AMOUNT}을 베팅했습니다! (잔액: $${human.chips.toLocaleString()})`);
 
-  // 2. AI 봇들(Bot 1, 2, 3) 지능형 자동 턴 루프 실행
-  await runAIBotBettingLoop();
+  const humanSeat = document.getElementById(human.seatId);
+  if (actionType === 'allin') {
+    if (humanSeat) showSeatActionTag(humanSeat, `🔥 ALL-IN $${amount.toLocaleString()}`, 'tag-allin');
+    console.log(`[🔥 ALL-IN] ${human.name}이(가) 전재산 $${amount.toLocaleString()}을 올인했습니다!!`);
+  } else if (actionType === 'raise') {
+    if (humanSeat) showSeatActionTag(humanSeat, `RAISE $${amount.toLocaleString()}`, 'tag-raise');
+    console.log(`[내 RAISE] ${human.name}이(가) $${amount.toLocaleString()}으로 레이즈했습니다! (잔액: $${human.chips.toLocaleString()})`);
+  } else {
+    if (humanSeat) showSeatActionTag(humanSeat, `CALL $${amount.toLocaleString()}`, 'tag-call');
+    console.log(`[내 CALL] ${human.name}이(가) $${amount.toLocaleString()}을 콜했습니다! (잔액: $${human.chips.toLocaleString()})`);
+  }
 
-  // 3. 베팅 한 바퀴 완료 후 현재 라운드에 맞춰 다음 단계 진행!
+  // 2. AI 봇들(Bot 1, 2, 3) 의사결정 및 눈치싸움 턴 루프 실행
+  await runAIBotBettingLoop(amount, isAllIn);
+
   await delay(400);
 
-  // 폴드하지 않고 살아남은 플레이어 수 확인
+  // 3. 생존 플레이어 체크
   const activePlayers = gameState.players.filter(p => !p.isFolded);
   if (activePlayers.length <= 1) {
-    // 봇들이 모두 폴드하여 나 혼자 남은 경우 즉시 승리!
-    console.log('[부전승] 모든 봇이 폴드하여 플레이어가 즉시 승리했습니다!');
+    console.log('[부전승] 모든 봇이 기권(Fold)하여 플레이어가 즉시 승리했습니다!');
     gameState.currentRound = 'showdown';
     await runShowdown();
-  } else {
-    if (gameState.currentRound === 'preflop') {
-      dealFlopCards();
-      gameState.currentRound = 'flop';
-    } else if (gameState.currentRound === 'flop') {
-      dealTurnCard();
-      gameState.currentRound = 'turn';
-    } else if (gameState.currentRound === 'turn') {
-      dealRiverCard();
-      gameState.currentRound = 'river';
-    } else if (gameState.currentRound === 'river') {
-      gameState.currentRound = 'showdown';
-      await runShowdown();
-    }
+    return;
+  }
+
+  // 4. 올인(ALL-IN) 상황인 경우: 보드 카드를 연속으로 런아웃(Runout) 오픈 후 쇼다운!
+  if (isAllIn || human.chips === 0) {
+    console.log('--- 🔥 [ALL-IN RUNOUT] 모든 카드를 차례대로 오픈하고 쇼다운으로 직행합니다! ---');
+    await runAllInBoardRunout();
+    return;
+  }
+
+  // 5. 일반 라운드 진행
+  if (gameState.currentRound === 'preflop') {
+    dealFlopCards();
+    gameState.currentRound = 'flop';
+  } else if (gameState.currentRound === 'flop') {
+    dealTurnCard();
+    gameState.currentRound = 'turn';
+  } else if (gameState.currentRound === 'turn') {
+    dealRiverCard();
+    gameState.currentRound = 'river';
+  } else if (gameState.currentRound === 'river') {
+    gameState.currentRound = 'showdown';
+    await runShowdown();
   }
 
   updateActionButtonsLabel();
@@ -323,26 +345,23 @@ async function handlePlayerCall() {
 /**
  * 봇들(Bot 1, Bot 2, Bot 3)이 AI 지능으로 Raise / Call / Fold 의사결정하는 턴 루프
  */
-async function runAIBotBettingLoop() {
+async function runAIBotBettingLoop(targetBetAmount, isPlayerAllIn = false) {
   const bots = gameState.players.filter(p => !p.isHuman);
 
-  console.log(`--- 🤖 AI 봇 의사결정 턴 시작 (Round: ${gameState.currentRound}) ---`);
+  console.log(`--- 🤖 AI 봇 의사결정 턴 시작 (Round: ${gameState.currentRound}, Target Bet: $${targetBetAmount}, All-in: ${isPlayerAllIn}) ---`);
 
   for (const bot of bots) {
-    // 이미 폴드한 봇은 건너뜀
-    if (bot.isFolded) {
-      continue;
-    }
+    if (bot.isFolded) continue;
 
     await delay(450);
 
     const seatEl = document.getElementById(bot.seatId);
     if (seatEl) seatEl.classList.add('active-turn');
 
-    // AI 엔진 호출
+    // AI 엔진 호출 (플레이어의 올인 여부 및 베팅액 전달)
     const decision = window.AIBotEngine 
-      ? window.AIBotEngine.decideBotAction(bot, gameState.communityCards, gameState.currentRound, DEFAULT_BET_AMOUNT)
-      : { action: 'call', amount: DEFAULT_BET_AMOUNT, reason: '기본 콜' };
+      ? window.AIBotEngine.decideBotAction(bot, gameState.communityCards, gameState.currentRound, targetBetAmount, isPlayerAllIn)
+      : { action: 'call', amount: targetBetAmount, reason: '기본 콜' };
 
     if (decision.action === 'fold') {
       bot.isFolded = true;
@@ -355,7 +374,7 @@ async function runAIBotBettingLoop() {
       executeBet(bot.id, decision.amount);
       playSound('sound-bet');
       if (seatEl) showSeatActionTag(seatEl, `RAISE $${decision.amount}`, 'tag-raise');
-      console.log(`[봇 RAISE] ${bot.name}이(가) 판돈을 $${decision.amount}으로 올렸습니다! (${decision.reason})`);
+      console.log(`[봇 RAISE] ${bot.name}이(가) $${decision.amount}으로 판돈을 올렸습니다! (${decision.reason})`);
     } else {
       executeBet(bot.id, decision.amount);
       playSound('sound-bet');
@@ -372,7 +391,33 @@ async function runAIBotBettingLoop() {
 }
 
 /**
- * 봇 좌석 상단에 액션 뱃지(RAISE, CALL, FOLD)를 띄우는 함수
+ * 올인 시 남은 커뮤니티 카드를 차례로 오픈하고 쇼다운을 실행하는 런아웃(Runout) 함수
+ */
+async function runAllInBoardRunout() {
+  if (gameState.currentRound === 'preflop') {
+    await delay(600);
+    dealFlopCards();
+    await delay(600);
+    dealTurnCard();
+    await delay(600);
+    dealRiverCard();
+  } else if (gameState.currentRound === 'flop') {
+    await delay(600);
+    dealTurnCard();
+    await delay(600);
+    dealRiverCard();
+  } else if (gameState.currentRound === 'turn') {
+    await delay(600);
+    dealRiverCard();
+  }
+
+  gameState.currentRound = 'showdown';
+  await delay(700);
+  await runShowdown();
+}
+
+/**
+ * 봇 좌석 상단에 액션 뱃지를 띄우는 함수
  */
 function showSeatActionTag(seatEl, text, className) {
   const oldTag = seatEl.querySelector('.seat-action-tag');
@@ -385,12 +430,83 @@ function showSeatActionTag(seatEl, text, className) {
 }
 
 // ==========================================================================
-// 7. 커뮤니티 카드 오픈 (Flop, Turn, River)
+// 7. 맞춤형 레이즈 슬라이더 UI 패널 제어
 // ==========================================================================
 
-/**
- * 플롭(Flop): 커뮤니티 카드 1, 2, 3번 오픈
- */
+function openRaisePanel() {
+  if (gameState.isBettingInProgress || gameState.currentRound === 'showdown') return;
+
+  const human = gameState.players.find(p => p.isHuman);
+  if (!human) return;
+
+  const panel = document.getElementById('raise-slider-panel');
+  const slider = document.getElementById('raise-slider');
+  const minLabel = document.getElementById('raise-min-val');
+  const maxLabel = document.getElementById('raise-max-val');
+  const amountText = document.getElementById('raise-amount-text');
+
+  if (!panel || !slider) return;
+
+  // 최소 레이즈 금액: $100 (또는 남은 칩), 최대: 내 남은 칩 전액
+  const minRaise = Math.min(human.chips, DEFAULT_BET_AMOUNT * 2);
+  const maxRaise = human.chips;
+
+  slider.min = minRaise;
+  slider.max = maxRaise;
+  slider.step = 25;
+  slider.value = minRaise;
+
+  if (minLabel) minLabel.textContent = `$${minRaise.toLocaleString()}`;
+  if (maxLabel) maxLabel.textContent = `$${maxRaise.toLocaleString()}`;
+  if (amountText) amountText.textContent = `$${minRaise.toLocaleString()}`;
+
+  panel.style.display = 'flex';
+}
+
+function closeRaisePanel() {
+  const panel = document.getElementById('raise-slider-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+function confirmCustomRaise() {
+  const slider = document.getElementById('raise-slider');
+  if (!slider) return;
+
+  const amount = parseInt(slider.value, 10);
+  const human = gameState.players.find(p => p.isHuman);
+  const isAllIn = (human && amount >= human.chips);
+
+  closeRaisePanel();
+  handlePlayerBet(amount, isAllIn, isAllIn ? 'allin' : 'raise');
+}
+
+function setRaisePreset(multiplier) {
+  const human = gameState.players.find(p => p.isHuman);
+  const slider = document.getElementById('raise-slider');
+  const amountText = document.getElementById('raise-amount-text');
+  if (!human || !slider) return;
+
+  let targetVal = DEFAULT_BET_AMOUNT * 2;
+
+  if (multiplier === '2x') {
+    targetVal = DEFAULT_BET_AMOUNT * 2;
+  } else if (multiplier === '3x') {
+    targetVal = DEFAULT_BET_AMOUNT * 3;
+  } else if (multiplier === 'pot') {
+    targetVal = Math.max(DEFAULT_BET_AMOUNT * 2, gameState.pot);
+  } else if (multiplier === 'all') {
+    targetVal = human.chips;
+  }
+
+  targetVal = Math.min(human.chips, Math.max(DEFAULT_BET_AMOUNT * 2, targetVal));
+  slider.value = targetVal;
+  if (amountText) amountText.textContent = `$${targetVal.toLocaleString()}`;
+}
+
+// ==========================================================================
+// 8. 커뮤니티 카드 오픈 (Flop, Turn, River)
+// ==========================================================================
+
 function dealFlopCards() {
   console.log('--- 🎴 [단계: 플롭(Flop)] 커뮤니티 카드 3장 오픈 ---');
   playSound('sound-card');
@@ -402,7 +518,6 @@ function dealFlopCards() {
   ];
 
   gameState.communityCards.push(...flopCards);
-
   console.log(`[플롭 오픈] 공개된 커뮤니티 카드 3장: [ ${flopCards.map(c => c.toString()).join(', ')} ] (남은 덱: ${gameState.deck.length}장)`);
 
   const flopSlots = [
@@ -420,16 +535,12 @@ function dealFlopCards() {
   });
 }
 
-/**
- * 턴(Turn): 4번째 커뮤니티 카드 1장 오픈
- */
 function dealTurnCard() {
   console.log('--- 🎴 [단계: 턴(Turn)] 4번째 커뮤니티 카드 오픈 ---');
   playSound('sound-card');
 
   const turnCard = gameState.deck.pop();
   gameState.communityCards.push(turnCard);
-
   console.log(`[턴 오픈] 공개된 4번째 카드: [ ${turnCard.toString()} ] (남은 덱: ${gameState.deck.length}장)`);
 
   const turnSlot = document.querySelector('#community-slots [data-slot="turn"]');
@@ -439,16 +550,12 @@ function dealTurnCard() {
   }
 }
 
-/**
- * 리버(River): 5번째 커뮤니티 카드 1장 오픈
- */
 function dealRiverCard() {
   console.log('--- 🎴 [단계: 리버(River)] 5번째(마지막) 커뮤니티 카드 오픈 ---');
   playSound('sound-card');
 
   const riverCard = gameState.deck.pop();
   gameState.communityCards.push(riverCard);
-
   console.log(`[리버 오픈] 공개된 5번째 카드: [ ${riverCard.toString()} ] (남은 덱: ${gameState.deck.length}장)`);
 
   const riverSlot = document.querySelector('#community-slots [data-slot="river"]');
@@ -459,26 +566,20 @@ function dealRiverCard() {
 }
 
 // ==========================================================================
-// 8. 쇼다운 (Showdown) 및 승패 판독/정산 처리
+// 9. 쇼다운 (Showdown) 및 승패 판독/정산 처리
 // ==========================================================================
 
-/**
- * 쇼다운: 살아있는 봇들의 카드를 일제히 공개하고 승패 판독 및 점수 정산, 종료 모달 표시
- */
 async function runShowdown() {
   console.log('==============================================');
   console.log('🏆 [쇼다운(Showdown)] 봇 패 공개 및 승패 판독');
   console.log('==============================================');
 
-  // 1. 폴드하지 않은 봇들의 손패를 일제히 앞면으로 뒤집어서 렌더링
   revealActiveBotCards();
   playSound('sound-card');
 
-  // 2. 승패 판독 대상 선별 (폴드하지 않고 살아남은 참가자들)
   const activePlayers = gameState.players.filter(p => !p.isFolded);
 
   if (activePlayers.length === 1) {
-    // 나 혼자 남은 경우 (봇들 전원 폴드)
     const winner = activePlayers[0];
     const totalPot = gameState.pot;
     winner.chips += totalPot;
@@ -495,7 +596,6 @@ async function runShowdown() {
     return;
   }
 
-  // 3. 2명 이상 생존 시 HandEvaluator 호출
   if (!window.HandEvaluator) {
     console.error('HandEvaluator 모듈이 로드되지 않았습니다.');
     return;
@@ -509,7 +609,6 @@ async function runShowdown() {
     console.log(`${idx + 1}위: ${res.player.name} -> ${res.handResult.rankInfo.name} (${res.handResult.rankInfo.korean}) [${res.handResult.description}]`);
   });
 
-  // 4. 점수 정산 로직: 승자에게 TOTAL POT 전액 지급
   const winners = outcome.winners;
   const winningHand = outcome.winningHand;
   const splitAmount = Math.floor(totalPot / winners.length);
@@ -525,15 +624,11 @@ async function runShowdown() {
   gameState.pot = 0;
   updatePotDOM();
 
-  // 5. 모달창 업데이트 및 오픈 & 승리 팡파레 재생!
   await delay(700);
   playSound('sound-win');
   showWinnerModal(winners, winningHand, totalPot);
 }
 
-/**
- * 봇들의 손패(홀 카드)를 앞면으로 공개 (폴드된 봇은 흐린 상태 유지)
- */
 function revealActiveBotCards() {
   const bots = gameState.players.filter(p => !p.isHuman);
 
@@ -541,7 +636,6 @@ function revealActiveBotCards() {
     const seatEl = document.getElementById(bot.seatId);
     if (!seatEl || bot.hand.length < 2) return;
 
-    // 폴드하지 않고 끝까지 살아남은 봇만 앞면 공개
     if (!bot.isFolded) {
       const botCardsContainer = seatEl.querySelector('.bot-cards');
       if (botCardsContainer) {
@@ -575,15 +669,13 @@ function revealActiveBotCards() {
   });
 }
 
-/**
- * 승자 및 족보 결과 모달 표시
- */
 function showWinnerModal(winners, winningHand, wonPot) {
   const modalEl = document.getElementById('game-modal');
   const titleEl = document.getElementById('modal-title');
   const subtitleEl = document.querySelector('.modal-subtitle');
   const potValEl = document.getElementById('modal-pot-val');
   const potLabelEl = document.querySelector('.modal-pot-label');
+  const nextHandBtn = document.getElementById('next-hand-btn') || document.getElementById('btn-next-hand');
 
   const winnerNames = winners.map(w => w.name).join(', ');
   const winTitle = winners.length > 1 ? `${winnerNames} 공동 승리! 🏆` : `${winnerNames} 승리! 🏆`;
@@ -595,19 +687,23 @@ function showWinnerModal(winners, winningHand, wonPot) {
   if (potValEl) potValEl.textContent = `+$${wonPot.toLocaleString()}`;
 
   if (modalEl) {
-    modalEl.classList.remove('hidden');
+    modalEl.classList.add('active');
+    modalEl.style.display = 'flex';
+  }
+
+  if (nextHandBtn) {
+    nextHandBtn.style.display = 'block';
+    nextHandBtn.onclick = startNextHand;
   }
 
   console.log(`[정산 완료] ${winTitle} | ${winSubtitle} | 획득 상금: $${wonPot.toLocaleString()}`);
 }
 
-/**
- * 게임 종료 모달 숨김
- */
 function hideGameModal() {
   const modalEl = document.getElementById('game-modal');
   if (modalEl) {
-    modalEl.classList.add('hidden');
+    modalEl.classList.remove('active');
+    modalEl.style.display = 'none';
   }
 
   document.querySelectorAll('.seat.winner-glow').forEach(el => {
@@ -615,15 +711,15 @@ function hideGameModal() {
   });
 }
 
+function startNextHand() {
+  console.log('--- 🔄 [Next Hand] 모든 카드를 비우고 새로운 판을 시작합니다! ---');
+  dealHoleCards();
+}
+
 // ==========================================================================
-// 9. DOM 렌더링 도우미 함수
+// 10. DOM 렌더링 도우미 함수
 // ==========================================================================
 
-/**
- * 트럼프 카드 앞면 HTML 생성 도우미
- * @param {Object} card - 카드 객체
- * @returns {string} 카드 앞면 HTML 마크업
- */
 function createCardFrontHTML(card) {
   return `
     <div class="playing-card suit-${card.suit.name}" title="${card.suit.name} ${card.rank}">
@@ -640,9 +736,6 @@ function createCardFrontHTML(card) {
   `;
 }
 
-/**
- * 특정 플레이어의 소지금(Chips) DOM 업데이트
- */
 function updatePlayerChipsDOM(playerId) {
   const player = gameState.players.find(p => p.id === playerId);
   if (!player) return;
@@ -659,9 +752,6 @@ function updatePlayerChipsDOM(playerId) {
   }
 }
 
-/**
- * TOTAL POT DOM 업데이트 및 펄스 이펙트
- */
 function updatePotDOM() {
   const potEl = document.getElementById('pot-amount');
   const potDisplayEl = document.getElementById('pot-display');
@@ -672,14 +762,11 @@ function updatePotDOM() {
 
   if (potDisplayEl) {
     potDisplayEl.classList.remove('pot-pulse');
-    void potDisplayEl.offsetWidth; // reflow
+    void potDisplayEl.offsetWidth;
     potDisplayEl.classList.add('pot-pulse');
   }
 }
 
-/**
- * 현재 라운드에 따른 베팅 버튼 서브텍스트 라벨 업데이트
- */
 function updateActionButtonsLabel() {
   const callSubtext = document.querySelector('#btn-call .btn-subtext');
   if (!callSubtext) return;
@@ -703,15 +790,13 @@ function updateActionButtonsLabel() {
   }
 }
 
-/**
- * 베팅 액션 버튼 활성/비활성 제어
- */
 function disableActionButtons(disabled) {
   const callBtn = document.getElementById('btn-call');
   const foldBtn = document.getElementById('btn-fold');
   const raiseBtn = document.getElementById('btn-raise');
+  const allinBtn = document.getElementById('btn-allin');
 
-  [callBtn, foldBtn, raiseBtn].forEach(btn => {
+  [callBtn, foldBtn, raiseBtn, allinBtn].forEach(btn => {
     if (btn) {
       btn.disabled = disabled;
       btn.style.opacity = disabled ? '0.6' : '1';
@@ -720,9 +805,6 @@ function disableActionButtons(disabled) {
   });
 }
 
-/**
- * 테이블 전체 UI 초기화 렌더링
- */
 function renderTable() {
   renderPlayerHand();
   renderBotCards();
@@ -731,9 +813,6 @@ function renderTable() {
   gameState.players.forEach(p => updatePlayerChipsDOM(p.id));
 }
 
-/**
- * 내 자리(PLAYER 1) 손패 앞면 렌더링
- */
 function renderPlayerHand() {
   const humanPlayer = gameState.players.find(p => p.isHuman);
   const playerSlots = document.querySelectorAll('#player-slots .player-card-slot');
@@ -747,27 +826,20 @@ function renderPlayerHand() {
   });
 }
 
-/**
- * 봇 3명의 카드는 뒷면으로 유지
- */
 function renderBotCards() {
-  const bots = [
-    { id: 'seat-bot-1', name: 'Bot 1' },
-    { id: 'seat-bot-2', name: 'Bot 2' },
-    { id: 'seat-bot-3', name: 'Bot 3' }
-  ];
+  const bots = gameState.players.filter(p => !p.isHuman);
 
-  bots.forEach(botInfo => {
-    const seatEl = document.getElementById(botInfo.id);
+  bots.forEach(bot => {
+    const seatEl = document.getElementById(bot.seatId);
     if (!seatEl) return;
 
     const botCardsContainer = seatEl.querySelector('.bot-cards');
     if (botCardsContainer) {
       botCardsContainer.innerHTML = `
-        <div class="card-facedown card-tilt-left" title="${botInfo.name} Card 1">
+        <div class="card-facedown card-tilt-left" title="${bot.name} Card 1">
           <div class="card-inner-pattern">♠</div>
         </div>
-        <div class="card-facedown card-tilt-right" title="${botInfo.name} Card 2">
+        <div class="card-facedown card-tilt-right" title="${bot.name} Card 2">
           <div class="card-inner-pattern">♦</div>
         </div>
       `;
@@ -775,9 +847,6 @@ function renderBotCards() {
   });
 }
 
-/**
- * 커뮤니티 카드 5장 슬롯 초기화 (모두 '?' 덮임)
- */
 function resetCommunityCards() {
   const communitySlots = document.querySelectorAll('#community-slots .card-slot');
   communitySlots.forEach((slot) => {
@@ -787,21 +856,25 @@ function resetCommunityCards() {
 }
 
 // ==========================================================================
-// 10. 이벤트 바인딩 및 게임 초기화
+// 11. 이벤트 바인딩 및 초기화
 // ==========================================================================
 
-/**
- * UI 조작 버튼 이벤트 등록
- */
 function setupEventListeners() {
   const foldBtn = document.getElementById('btn-fold');
   const callBtn = document.getElementById('btn-call');
   const raiseBtn = document.getElementById('btn-raise');
-  const nextHandBtn = document.getElementById('btn-next-hand');
+  const allinBtn = document.getElementById('btn-allin');
+  const nextHandBtn = document.getElementById('next-hand-btn') || document.getElementById('btn-next-hand');
+
+  // 맞춤형 레이즈 슬라이더 UI 이벤트
+  const raiseSlider = document.getElementById('raise-slider');
+  const raiseAmountText = document.getElementById('raise-amount-text');
+  const raiseCancelBtn = document.getElementById('btn-raise-cancel');
+  const raiseConfirmBtn = document.getElementById('btn-raise-confirm');
 
   if (foldBtn) {
     foldBtn.addEventListener('click', () => {
-      console.log('[Action] Fold 버튼 클릭: 이번 판을 포기(다이)합니다.');
+      console.log('[Action] Fold 버튼 클릭');
       const human = gameState.players.find(p => p.isHuman);
       human.isFolded = true;
       const seatEl = document.getElementById(human.seatId);
@@ -816,35 +889,77 @@ function setupEventListeners() {
 
   if (callBtn) {
     callBtn.addEventListener('click', () => {
-      handlePlayerCall();
+      handlePlayerBet(DEFAULT_BET_AMOUNT, false, 'call');
     });
   }
 
+  // RAISE 버튼: 슬라이더 패널 오픈
   if (raiseBtn) {
     raiseBtn.addEventListener('click', () => {
-      console.log('[Action] Raise 버튼 클릭');
-      handlePlayerCall();
+      openRaisePanel();
     });
   }
 
+  // ALL-IN 버튼: 전재산 올인 베팅
+  if (allinBtn) {
+    allinBtn.addEventListener('click', () => {
+      const human = gameState.players.find(p => p.isHuman);
+      if (!human || human.chips <= 0) return;
+      handlePlayerBet(human.chips, true, 'allin');
+    });
+  }
+
+  // 레이즈 슬라이더 변경 감지
+  if (raiseSlider && raiseAmountText) {
+    raiseSlider.addEventListener('input', (e) => {
+      raiseAmountText.textContent = `$${parseInt(e.target.value, 10).toLocaleString()}`;
+    });
+  }
+
+  // 레이즈 취소
+  if (raiseCancelBtn) {
+    raiseCancelBtn.addEventListener('click', closeRaisePanel);
+  }
+
+  // 레이즈 확인
+  if (raiseConfirmBtn) {
+    raiseConfirmBtn.addEventListener('click', confirmCustomRaise);
+  }
+
+  // 프리셋 버튼들 (2X, 3X, POT, MAX)
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const preset = e.target.dataset.preset;
+      setRaisePreset(preset);
+    });
+  });
+
+  // 다음 판 버튼
   if (nextHandBtn) {
-    nextHandBtn.addEventListener('click', () => {
-      console.log('[Next Hand] 다음 판을 시작합니다.');
-      dealHoleCards();
-    });
+    nextHandBtn.addEventListener('click', startNextHand);
   }
 }
 
-/**
- * 게임 초기화 및 첫 게임 시작
- */
-function initGame() {
-  console.log('텍사스 홀덤 테이블 세팅 완료!');
-  setupEventListeners();
-
-  // 첫 라운드 프리플롭 딜링 시작
-  dealHoleCards();
+function centerTableScroll(isSmooth = false) {
+  setTimeout(() => {
+    const container = document.getElementById('game-container');
+    if (container && container.scrollWidth > container.clientWidth) {
+      container.scrollTo({ left: (container.scrollWidth - container.clientWidth) / 2, behavior: isSmooth ? 'smooth' : 'auto' });
+    }
+    const scrollWidth = document.documentElement.scrollWidth || document.body.scrollWidth;
+    const clientWidth = window.innerWidth;
+    if (scrollWidth > clientWidth) {
+      window.scrollTo({ left: (scrollWidth - clientWidth) / 2, behavior: isSmooth ? 'smooth' : 'auto' });
+    }
+  }, 100);
 }
 
-// DOM 로드 완료 후 게임 초기화 실행
+function initGame() {
+  console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
+  setupEventListeners();
+  dealHoleCards();
+  centerTableScroll();
+}
+
 document.addEventListener('DOMContentLoaded', initGame);
+window.addEventListener('resize', centerTableScroll);

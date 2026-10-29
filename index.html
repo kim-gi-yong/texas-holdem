@@ -30,8 +30,8 @@
           </div>
         </header>
 
-        <!-- 봇 2 자리 (상단 중앙) -->
-        <div class="seat seat-top" id="seat-bot-2" aria-label="Bot 2 자리">
+        <!-- 봇 2 자리 (상단 좌측) -->
+        <div class="seat seat-top seat-top-left" id="seat-bot-2" aria-label="Bot 2 자리">
           <div class="player-info-pill">
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 2</span>
@@ -43,6 +43,23 @@
             </div>
             <div class="card-facedown card-tilt-right" title="Bot 2 Card 2">
               <div class="card-inner-pattern">♦</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 봇 3 자리 (상단 우측) -->
+        <div class="seat seat-top seat-top-right" id="seat-bot-3" aria-label="Bot 3 자리">
+          <div class="player-info-pill">
+            <span class="player-avatar">🤖</span>
+            <span class="player-name">Bot 3</span>
+            <span class="player-chips">$1,000</span>
+          </div>
+          <div class="bot-cards" aria-label="Bot 3 홀 카드">
+            <div class="card-facedown card-tilt-left" title="Bot 3 Card 1">
+              <div class="card-inner-pattern">♣</div>
+            </div>
+            <div class="card-facedown card-tilt-right" title="Bot 3 Card 2">
+              <div class="card-inner-pattern">♥</div>
             </div>
           </div>
         </div>
@@ -93,19 +110,36 @@
           </section>
         </div>
 
-        <!-- 봇 3 자리 (우측 측면) -->
-        <div class="seat seat-right" id="seat-bot-3" aria-label="Bot 3 자리">
+        <!-- 봇 4 자리 (우측 측면) -->
+        <div class="seat seat-right" id="seat-bot-4" aria-label="Bot 4 자리">
           <div class="player-info-pill">
             <span class="player-avatar">🤖</span>
-            <span class="player-name">Bot 3</span>
+            <span class="player-name">Bot 4</span>
             <span class="player-chips">$1,000</span>
           </div>
-          <div class="bot-cards" aria-label="Bot 3 홀 카드">
-            <div class="card-facedown card-tilt-left" title="Bot 3 Card 1">
+          <div class="bot-cards" aria-label="Bot 4 홀 카드">
+            <div class="card-facedown card-tilt-left" title="Bot 4 Card 1">
               <div class="card-inner-pattern">♠</div>
             </div>
-            <div class="card-facedown card-tilt-right" title="Bot 3 Card 2">
+            <div class="card-facedown card-tilt-right" title="Bot 4 Card 2">
               <div class="card-inner-pattern">♦</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 봇 5 자리 (하단 좌측 - 내 옆) -->
+        <div class="seat seat-bottom-left" id="seat-bot-5" aria-label="Bot 5 자리">
+          <div class="player-info-pill">
+            <span class="player-avatar">🤖</span>
+            <span class="player-name">Bot 5</span>
+            <span class="player-chips">$1,000</span>
+          </div>
+          <div class="bot-cards" aria-label="Bot 5 홀 카드">
+            <div class="card-facedown card-tilt-left" title="Bot 5 Card 1">
+              <div class="card-inner-pattern">♠</div>
+            </div>
+            <div class="card-facedown card-tilt-right" title="Bot 5 Card 2">
+              <div class="card-inner-pattern">♣</div>
             </div>
           </div>
         </div>
@@ -145,22 +179,49 @@
         <span class="btn-text">RAISE</span>
         <span class="btn-subtext">올리기</span>
       </button>
+      <button type="button" class="action-btn btn-allin" id="btn-allin" aria-label="올인">
+        <span class="btn-text">ALL-IN</span>
+        <span class="btn-subtext">전재산 베팅</span>
+      </button>
+    </nav>
+
+    <!-- 맞춤형 레이즈 슬라이더 패널 (Custom Raise UI) -->
+    <div id="raise-slider-panel" class="raise-slider-panel" style="display: none;">
+      <div class="raise-panel-header">
+        <span class="raise-title">레이즈 금액 설정</span>
+        <span class="raise-amount-badge" id="raise-amount-text">$100</span>
+      </div>
+      <div class="raise-slider-track">
+        <span class="slider-limit-label" id="raise-min-val">$100</span>
+        <input type="range" id="raise-slider" min="100" max="1000" step="25" value="100">
+        <span class="slider-limit-label" id="raise-max-val">$1,000</span>
+      </div>
+      <div class="raise-preset-buttons">
+        <button type="button" class="preset-btn" data-preset="2x">2X</button>
+        <button type="button" class="preset-btn" data-preset="3x">3X</button>
+        <button type="button" class="preset-btn" data-preset="pot">POT</button>
+        <button type="button" class="preset-btn" data-preset="all">MAX</button>
+      </div>
+      <div class="raise-panel-actions">
+        <button type="button" id="btn-raise-cancel" class="raise-action-cancel">취소</button>
+        <button type="button" id="btn-raise-confirm" class="raise-action-confirm">레이즈 확인</button>
+      </div>
+    </div>
+
     <!-- 게임 종료 UI 모달 -->
-    <div id="game-modal" class="game-modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="game-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-backdrop"></div>
       <div class="modal-content">
         <div class="modal-icon">🏆</div>
         <h2 id="modal-title" class="modal-title">게임 종료!</h2>
-        <p class="modal-subtitle">승자 판독 엔진 개발 필요</p>
+        <p class="modal-subtitle">승자 판독 엔진</p>
         
         <div class="modal-pot-box">
-          <span class="modal-pot-label">FINAL POT</span>
+          <span class="modal-pot-label">WINNER POT</span>
           <span class="modal-pot-val" id="modal-pot-val">$0</span>
         </div>
 
-        <button type="button" class="btn-next-hand" id="btn-next-hand">
-          <span class="next-btn-text">NEXT HAND (다음 판)</span>
-        </button>
+        <button type="button" id="next-hand-btn" class="next-hand-btn">NEXT HAND (다음 판)</button>
       </div>
     </div>
 
