@@ -32,10 +32,15 @@
 
         <!-- 봇 2 자리 (상단 좌측) -->
         <div class="seat seat-top seat-top-left" id="seat-bot-2" aria-label="Bot 2 자리">
+          <div class="seat-chip-stack" id="stack-bot-2"></div>
           <div class="player-info-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 2</span>
-            <span class="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips">$1,000</span>
+            </span>
           </div>
           <div class="bot-cards" aria-label="Bot 2 홀 카드">
             <div class="card-facedown card-tilt-left" title="Bot 2 Card 1">
@@ -49,10 +54,15 @@
 
         <!-- 봇 3 자리 (상단 우측) -->
         <div class="seat seat-top seat-top-right" id="seat-bot-3" aria-label="Bot 3 자리">
+          <div class="seat-chip-stack" id="stack-bot-3"></div>
           <div class="player-info-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 3</span>
-            <span class="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips">$1,000</span>
+            </span>
           </div>
           <div class="bot-cards" aria-label="Bot 3 홀 카드">
             <div class="card-facedown card-tilt-left" title="Bot 3 Card 1">
@@ -66,10 +76,15 @@
 
         <!-- 봇 1 자리 (좌측 측면) -->
         <div class="seat seat-left" id="seat-bot-1" aria-label="Bot 1 자리">
+          <div class="seat-chip-stack" id="stack-bot-1"></div>
           <div class="player-info-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 1</span>
-            <span class="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips">$1,000</span>
+            </span>
           </div>
           <div class="bot-cards" aria-label="Bot 1 홀 카드">
             <div class="card-facedown card-tilt-left" title="Bot 1 Card 1">
@@ -84,9 +99,11 @@
         <!-- 중앙 테이블 영역: 메인 팟 & 커뮤니티 카드 5장 -->
         <div class="table-center-area">
           <div class="pot-display" id="pot-display">
+            <span class="casino-chip chip-pot"></span>
             <span class="pot-label">TOTAL POT</span>
             <span class="pot-amount" id="pot-amount">$0</span>
           </div>
+          <div class="pot-chip-stacks" id="stack-pot"></div>
 
           <section class="community-card-section" aria-label="커뮤니티 카드 영역">
             <div class="section-title">COMMUNITY CARDS</div>
@@ -112,10 +129,15 @@
 
         <!-- 봇 4 자리 (우측 측면) -->
         <div class="seat seat-right" id="seat-bot-4" aria-label="Bot 4 자리">
+          <div class="seat-chip-stack" id="stack-bot-4"></div>
           <div class="player-info-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 4</span>
-            <span class="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips">$1,000</span>
+            </span>
           </div>
           <div class="bot-cards" aria-label="Bot 4 홀 카드">
             <div class="card-facedown card-tilt-left" title="Bot 4 Card 1">
@@ -129,10 +151,15 @@
 
         <!-- 봇 5 자리 (하단 좌측 - 내 옆) -->
         <div class="seat seat-bottom-left" id="seat-bot-5" aria-label="Bot 5 자리">
+          <div class="seat-chip-stack" id="stack-bot-5"></div>
           <div class="player-info-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">🤖</span>
             <span class="player-name">Bot 5</span>
-            <span class="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips">$1,000</span>
+            </span>
           </div>
           <div class="bot-cards" aria-label="Bot 5 홀 카드">
             <div class="card-facedown card-tilt-left" title="Bot 5 Card 1">
@@ -147,18 +174,25 @@
         <!-- 하단: 플레이어 1(내 자리) 핸드 및 정보 영역 -->
         <section class="seat seat-bottom player-section" id="seat-player-1" aria-label="내 자리 (PLAYER 1)">
           <div class="section-title">YOUR HAND</div>
-          <div class="card-slots player-slots" id="player-slots">
-            <div class="card-slot player-card-slot" data-slot="hole-1" title="Hole Card 1">
-              <span class="slot-watermark">🂠</span>
-            </div>
-            <div class="card-slot player-card-slot" data-slot="hole-2" title="Hole Card 2">
-              <span class="slot-watermark">🂠</span>
+          <div class="player-hand-container">
+            <div class="seat-chip-stack player-chip-stack" id="stack-player-1"></div>
+            <div class="card-slots player-slots" id="player-slots">
+              <div class="card-slot player-card-slot" data-slot="hole-1" title="Hole Card 1">
+                <span class="slot-watermark">🂠</span>
+              </div>
+              <div class="card-slot player-card-slot" data-slot="hole-2" title="Hole Card 2">
+                <span class="slot-watermark">🂠</span>
+              </div>
             </div>
           </div>
           <div class="player-info-pill player-main-pill">
+            <span class="blind-badge-slot"></span>
             <span class="player-avatar">👤</span>
             <span class="player-name">PLAYER 1</span>
-            <span class="player-chips" id="player-chips">$1,000</span>
+            <span class="player-chips-box">
+              <span class="casino-chip chip-sm"></span>
+              <span class="player-chips" id="player-chips">$1,000</span>
+            </span>
           </div>
         </section>
 
@@ -171,9 +205,9 @@
         <span class="btn-text">FOLD</span>
         <span class="btn-subtext">포기</span>
       </button>
-      <button type="button" class="action-btn btn-call" id="btn-call" aria-label="콜">
-        <span class="btn-text">CALL</span>
-        <span class="btn-subtext">체크 / 받기</span>
+      <button type="button" class="action-btn btn-call btn-mode-check" id="btn-call" aria-label="체크 또는 콜">
+        <span class="btn-text">CHECK</span>
+        <span class="btn-subtext">체크 / 넘기기 ($0)</span>
       </button>
       <button type="button" class="action-btn btn-raise" id="btn-raise" aria-label="레이즈">
         <span class="btn-text">RAISE</span>
@@ -189,7 +223,10 @@
     <div id="raise-slider-panel" class="raise-slider-panel" style="display: none;">
       <div class="raise-panel-header">
         <span class="raise-title">레이즈 금액 설정</span>
-        <span class="raise-amount-badge" id="raise-amount-text">$100</span>
+        <div class="raise-amount-badge">
+          <span class="casino-chip chip-sm"></span>
+          <span id="raise-amount-text">$100</span>
+        </div>
       </div>
       <div class="raise-slider-track">
         <span class="slider-limit-label" id="raise-min-val">$100</span>
@@ -204,7 +241,7 @@
       </div>
       <div class="raise-panel-actions">
         <button type="button" id="btn-raise-cancel" class="raise-action-cancel">취소</button>
-        <button type="button" id="btn-raise-confirm" class="raise-action-confirm">레이즈 확인</button>
+        <button type="button" id="btn-raise-confirm" class="raise-action-confirm">레이즈 확인 (Bet)</button>
       </div>
     </div>
 
@@ -222,6 +259,54 @@
         </div>
 
         <button type="button" id="next-hand-btn" class="next-hand-btn">NEXT HAND (다음 판)</button>
+      </div>
+    </div>
+
+    <!-- 입장 바이인 환전소 모달 (Buy-in Modal) -->
+    <div id="buyin-modal" class="buyin-modal active" role="dialog" aria-modal="true" aria-labelledby="buyin-title">
+      <div class="buyin-backdrop"></div>
+      <div class="buyin-content">
+        <div class="buyin-header-icon">🏦</div>
+        <h2 id="buyin-title" class="buyin-title">CASINO CASHIER</h2>
+        <p class="buyin-subtitle" id="buyin-subtitle">테이블에 입장할 바이인(Buy-in) 칩을 선택하세요</p>
+
+        <div class="buyin-options-grid">
+          <div class="buyin-card active" data-amount="1000">
+            <div class="buyin-chip-icon">
+              <span class="stacked-chip chip-100"></span>
+            </div>
+            <div class="buyin-card-name">표준 바이인</div>
+            <div class="buyin-card-val">$1,000</div>
+            <div class="buyin-card-tag">20 BB (기본)</div>
+          </div>
+
+          <div class="buyin-card" data-amount="2000">
+            <div class="buyin-chip-icon">
+              <span class="stacked-chip chip-500"></span>
+            </div>
+            <div class="buyin-card-name">딥스택 바이인</div>
+            <div class="buyin-card-val">$2,000</div>
+            <div class="buyin-card-tag">40 BB (추천)</div>
+          </div>
+
+          <div class="buyin-card" data-amount="5000">
+            <div class="buyin-chip-icon">
+              <span class="stacked-chip chip-1000"></span>
+            </div>
+            <div class="buyin-card-name">하이롤러</div>
+            <div class="buyin-card-val">$5,000</div>
+            <div class="buyin-card-tag">100 BB (VIP)</div>
+          </div>
+        </div>
+
+        <div class="buyin-summary-box">
+          <span class="buyin-summary-label">입장 칩 구매액:</span>
+          <span class="buyin-summary-amount" id="buyin-selected-amount">$1,000</span>
+        </div>
+
+        <button type="button" id="btn-buyin-confirm" class="buyin-confirm-btn">
+          <span>칩 구매하고 테이블 앉기</span>
+        </button>
       </div>
     </div>
 

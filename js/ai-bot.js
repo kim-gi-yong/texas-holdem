@@ -205,10 +205,11 @@ function evaluatePostflop(bot, communityCards, round, baseBet, personality) {
   const evalResult = window.HandEvaluator.evaluate7Cards(allCards);
   const handRank = evalResult ? evalResult.rankInfo.rank : 1;
   const rankName = evalResult ? evalResult.rankInfo.korean : '하이 카드';
+  const effectiveBase = Math.max(50, baseBet);
 
   // 1) 최상위 및 중상위 메이드 족보 (투 페어 이상: rank >= 3)
   if (handRank >= 3) {
-    const raiseAmount = Math.min(bot.chips, baseBet * 2);
+    const raiseAmount = Math.min(bot.chips, effectiveBase * 2);
     if (Math.random() < 0.8 + personality.raiseChanceBoost) {
       return {
         action: 'raise',
@@ -219,7 +220,7 @@ function evaluatePostflop(bot, communityCards, round, baseBet, personality) {
     return {
       action: 'call',
       amount: baseBet,
-      reason: `강력한 족보 [${rankName}] 보유, 슬로우 플레이 콜`
+      reason: `강력한 족보 [${rankName}] 보유, 슬로우 플레이 콜/체크`
     };
   }
 
@@ -228,17 +229,22 @@ function evaluatePostflop(bot, communityCards, round, baseBet, personality) {
     const topPairVal = evalResult.score[1] || 0;
     if (topPairVal >= 11) {
       if (Math.random() < 0.45 + personality.raiseChanceBoost) {
-        return { action: 'raise', amount: baseBet * 2, reason: `높은 원 페어(${topPairVal} 페어)로 공격적 레이즈` };
+        return { action: 'raise', amount: Math.min(bot.chips, effectiveBase * 2), reason: `높은 원 페어(${topPairVal} 페어)로 공격적 레이즈` };
       }
-      return { action: 'call', amount: baseBet, reason: `탑 페어로 안정적 콜` };
+      return { action: 'call', amount: baseBet, reason: `탑 페어로 안정적 콜/체크` };
     }
 
-    if (round === 'river') {
+    if (round === 'river' && baseBet > 0) {
       if (Math.random() < 0.35 + personality.foldChanceBoost) {
         return { action: 'fold', amount: 0, reason: `낮은 원 페어로 리버 베팅에 부담을 느껴 폴드` };
       }
     }
-    return { action: 'call', amount: baseBet, reason: `원 페어(${rankName})로 쇼다운 기대 콜` };
+    return { action: 'call', amount: baseBet, reason: `원 페어(${rankName})로 쇼다운 기대 콜/체크` };
+  }
+
+  // 콜 금액이 0원(체크 가능)일 때는 하이 카드라도 포기하지 않고 무조건 무료 체크(Check)
+  if (baseBet === 0) {
+    return { action: 'call', amount: 0, reason: `추가 베팅액이 0원이므로 무료 체크(Check)` };
   }
 
   // 3) 노메이드 하이 카드 (rank === 1)
