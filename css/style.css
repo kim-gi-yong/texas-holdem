@@ -1,0 +1,958 @@
+/* ==========================================================================
+   Texas Hold'em - Casino Mobile Table UI Stylesheet (4-Player Layout)
+   ========================================================================== */
+
+/* Design Tokens & CSS Variables */
+:root {
+  /* Casino Colors */
+  --felt-green-deep: #053313;
+  --felt-green-base: #0a5c27;
+  --felt-green-light: #127d39;
+  --felt-pattern: rgba(0, 0, 0, 0.15);
+
+  /* Luxury Gold Accents */
+  --gold-primary: #d4af37;
+  --gold-light: #fbe082;
+  --gold-dark: #996515;
+  --gold-gradient: linear-gradient(135deg, #fbe082 0%, #d4af37 50%, #996515 100%);
+  --gold-border-glow: 0 0 12px rgba(212, 175, 55, 0.45);
+
+  /* Table Rail & Leather */
+  --leather-rim: #1f120c;
+  --leather-gradient: linear-gradient(180deg, #2b1810 0%, #170b06 100%);
+
+  /* Card Back Themes */
+  --card-back-red: radial-gradient(circle at 50% 50%, #b31b2c 0%, #750a16 100%);
+  --card-back-border: #ffffff;
+
+  /* Action Buttons */
+  --btn-fold-bg: linear-gradient(180deg, #c0392b 0%, #8b1e15 100%);
+  --btn-fold-border: #e74c3c;
+  --btn-call-bg: linear-gradient(180deg, #27ae60 0%, #196f3d 100%);
+  --btn-call-border: #2ecc71;
+  --btn-raise-bg: linear-gradient(180deg, #f39c12 0%, #b76e04 100%);
+  --btn-raise-border: #f1c40f;
+
+  /* Typography */
+  --font-display: 'Cinzel', serif, Georgia;
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base Reset & Mobile Screen Fit */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #080b0e;
+  font-family: var(--font-ui);
+  color: #ffffff;
+}
+
+/* App Container - Centered Mobile Screen */
+.game-container {
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: #080b0e;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+}
+
+/* ==========================================================================
+   Poker Table Core
+   ========================================================================== */
+.poker-table {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 8px 8px 4px 8px;
+  padding: 6px;
+  border-radius: 36px;
+  background: var(--leather-gradient);
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 255, 255, 0.15),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.8),
+    0 10px 25px rgba(0, 0, 0, 0.7);
+  border: 2px solid #3d2316;
+  min-height: 0;
+}
+
+/* Table Felt - Rich Green Luxury Felt */
+.table-felt {
+  flex: 1;
+  position: relative;
+  border-radius: 30px;
+  background: radial-gradient(ellipse at 50% 48%, var(--felt-green-light) 0%, var(--felt-green-base) 60%, var(--felt-green-deep) 100%);
+  border: 2px solid rgba(212, 175, 55, 0.65);
+  box-shadow: 
+    inset 0 0 24px rgba(0, 0, 0, 0.7),
+    inset 0 0 5px rgba(212, 175, 55, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Gold Felt Inner Trim Line */
+.table-felt::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  border-radius: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Table Header / Logo
+   ========================================================================== */
+.table-header {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.casino-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.badge-icon {
+  color: var(--gold-primary);
+  font-size: 0.7rem;
+}
+
+.badge-title {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================================================
+   4-Player Seats System (Oval Perimeter)
+   ========================================================================== */
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 3;
+}
+
+/* Top Seat: Bot 2 */
+.seat-top {
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 4px;
+}
+
+/* Left Seat: Bot 1 */
+.seat-left {
+  top: 34%;
+  left: 8px;
+  transform: translateY(-50%);
+  gap: 4px;
+}
+
+/* Right Seat: Bot 3 */
+.seat-right {
+  top: 34%;
+  right: 8px;
+  transform: translateY(-50%);
+  gap: 4px;
+}
+
+/* Bottom Seat: Player 1 (Main Player) */
+.seat-bottom {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Player Info Badges */
+.player-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 14px;
+  background: rgba(4, 20, 10, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  white-space: nowrap;
+}
+
+.player-main-pill {
+  padding: 4px 14px;
+  border-color: rgba(251, 224, 130, 0.65);
+  background: rgba(2, 16, 7, 0.9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 6px rgba(212, 175, 55, 0.25);
+}
+
+.player-avatar {
+  font-size: 0.75rem;
+}
+
+.player-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.player-chips {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+/* ==========================================================================
+   Bot Cards (Facedown 2 Cards with Realistic Overlap & Texture)
+   ========================================================================== */
+.bot-cards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-facedown {
+  width: 32px;
+  aspect-ratio: 5 / 7;
+  border-radius: 4px;
+  background: var(--card-back-red);
+  border: 1.5px solid #ffffff;
+  outline: 1px solid rgba(212, 175, 55, 0.8);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+/* Card Back Geometric Pattern */
+.card-facedown::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.08) 2px, transparent 2px, transparent 6px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.08) 2px, transparent 2px, transparent 6px);
+}
+
+.card-inner-pattern {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Natural Fanning Effect */
+.card-tilt-left {
+  transform: rotate(-6deg);
+  z-index: 1;
+}
+
+.card-tilt-right {
+  margin-left: -14px;
+  transform: rotate(6deg);
+  z-index: 2;
+}
+
+/* ==========================================================================
+   Center Table Area: Total Pot & 5 Community Cards
+   ========================================================================== */
+.table-center-area {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 150px);
+  max-width: 250px;
+  z-index: 2;
+}
+
+.pot-display {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 14px;
+  border-radius: 12px;
+  background: rgba(2, 20, 9, 0.85);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+
+.pot-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.pot-amount {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.community-card-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 1.5px;
+  color: rgba(251, 224, 130, 0.8);
+  text-align: center;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Card Slots (5 Community Cards & Player 2 Cards)
+   ========================================================================== */
+.card-slots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.community-slots {
+  gap: 5px;
+}
+
+.player-slots {
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+/* Card Slot Base */
+.card-slot {
+  aspect-ratio: 5 / 7;
+  position: relative;
+  border-radius: 6px;
+  border: 1.8px dashed rgba(212, 175, 55, 0.55);
+  background: rgba(4, 30, 12, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 
+    inset 0 0 8px rgba(0, 0, 0, 0.6),
+    0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Community Slots sizing */
+.community-slots .card-slot {
+  flex: 1;
+  max-width: 44px;
+  min-width: 34px;
+}
+
+/* Player Hand 2 Slots sizing (prominent and clear) */
+.player-slots .player-card-slot {
+  width: 68px;
+  max-width: 74px;
+  border-radius: 9px;
+  border-width: 2px;
+  border-color: rgba(251, 224, 130, 0.75);
+  background: rgba(2, 22, 8, 0.6);
+}
+
+/* Slot Watermark */
+.slot-watermark {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(212, 175, 55, 0.3);
+  pointer-events: none;
+  font-family: var(--font-display);
+}
+
+.player-card-slot .slot-watermark {
+  font-size: 1.5rem;
+  color: rgba(212, 175, 55, 0.45);
+}
+
+/* Interactive Slot Hover */
+.card-slot:hover {
+  border-color: var(--gold-light);
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    var(--gold-border-glow);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   Real Playing Card (Front Face)
+   ========================================================================== */
+.card-slot.has-card {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.playing-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ffffff 0%, #f4f5f7 100%);
+  border: 1px solid #c8ccd0;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 5px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: dealCardAnim 0.38s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
+}
+
+/* Card Suit Colors */
+.playing-card.suit-hearts,
+.playing-card.suit-diamonds {
+  color: #d63031;
+}
+
+.playing-card.suit-spades,
+.playing-card.suit-clubs {
+  color: #1a1e24;
+}
+
+/* Card Corners */
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  width: fit-content;
+}
+
+.card-corner.top-left {
+  align-self: flex-start;
+}
+
+.card-corner.bottom-right {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.card-corner .card-rank {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.card-corner .card-mini-suit {
+  font-size: 0.72rem;
+  margin-top: 1px;
+}
+
+/* Big Center Suit Symbol */
+.card-center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.7rem;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* Subtle card inner sheen */
+.playing-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 7px 7px 0 0;
+  pointer-events: none;
+}
+
+/* Community Slots Card Adjustments (Compact Size) */
+.community-slots .playing-card {
+  padding: 2px 3px;
+  border-radius: 5px;
+  animation: flopFlipAnim 0.45s cubic-bezier(0.2, 0.85, 0.35, 1.2) forwards;
+}
+
+.community-slots .card-corner .card-rank {
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.community-slots .card-corner .card-mini-suit {
+  font-size: 0.55rem;
+}
+
+.community-slots .card-center-suit {
+  font-size: 1.15rem;
+}
+
+/* Flop 3D Flip Animation */
+@keyframes flopFlipAnim {
+  0% {
+    opacity: 0;
+    transform: rotateY(90deg) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+/* Deal Animation */
+@keyframes dealCardAnim {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.8) rotate(-6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+/* Pot Pulse Animation on Update */
+.pot-pulse {
+  animation: potPulseAnim 0.4s ease-out;
+}
+
+@keyframes potPulseAnim {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 16px rgba(251, 224, 130, 0.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Active Player Turn Glow */
+.seat.active-turn .player-info-pill {
+  border-color: var(--gold-light);
+  box-shadow: 0 0 12px rgba(251, 224, 130, 0.7);
+}
+
+/* Winner Seat Aura Glow */
+.seat.winner-glow .player-info-pill {
+  border-color: #ffd700;
+  background: rgba(45, 34, 0, 0.95);
+  box-shadow: 0 0 20px #ffd700, inset 0 0 10px #ffeaa7;
+  transform: scale(1.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Folded Player Styling */
+.seat.folded {
+  opacity: 0.42;
+  filter: grayscale(0.7);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.seat.folded .bot-cards {
+  transform: scale(0.88);
+}
+
+/* Bot Dynamic Action Tag */
+.seat-action-tag {
+  position: absolute;
+  top: -10px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  animation: tagPopAnim 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
+}
+
+.seat-action-tag.tag-raise {
+  background: var(--gold-gradient);
+  color: #1a1002;
+  border: 1px solid var(--gold-light);
+}
+
+.seat-action-tag.tag-call {
+  background: #27ae60;
+  color: #ffffff;
+  border: 1px solid #2ecc71;
+}
+
+.seat-action-tag.tag-fold {
+  background: #c0392b;
+  color: #ffffff;
+  border: 1px solid #e74c3c;
+}
+
+@keyframes tagPopAnim {
+  0% { transform: scale(0.6) translateY(5px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* ==========================================================================
+   Betting Action Bar (Bottom Navigation)
+   ========================================================================== */
+.betting-action-bar {
+  width: 100%;
+  padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px;
+  background: linear-gradient(180deg, rgba(13, 17, 23, 0.95) 0%, rgba(7, 10, 14, 0.98) 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.35);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Action Buttons */
+.action-btn {
+  flex: 1;
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-ui);
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.btn-text {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+  line-height: 1.1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.btn-subtext {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+}
+
+/* Individual Button Palettes */
+.btn-fold {
+  background: var(--btn-fold-bg);
+  border-color: var(--btn-fold-border);
+}
+
+.btn-fold:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.45);
+}
+
+.btn-call {
+  background: var(--btn-call-bg);
+  border-color: var(--btn-call-border);
+}
+
+.btn-call:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.45);
+}
+
+.btn-raise {
+  background: var(--btn-raise-bg);
+  border-color: var(--btn-raise-border);
+}
+
+.btn-raise:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 12px rgba(241, 196, 15, 0.45);
+}
+
+/* ==========================================================================
+   Bot Cards Showdown Face-Up Styles
+   ========================================================================== */
+.bot-cards .playing-card {
+  width: 32px;
+  aspect-ratio: 5 / 7;
+  border-radius: 4px;
+  padding: 1px 2px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+  animation: flopFlipAnim 0.45s cubic-bezier(0.2, 0.85, 0.35, 1.2) forwards;
+}
+
+.bot-cards .playing-card.card-tilt-left {
+  transform: rotate(-6deg);
+  z-index: 1;
+}
+
+.bot-cards .playing-card.card-tilt-right {
+  margin-left: -14px;
+  transform: rotate(6deg);
+  z-index: 2;
+}
+
+.bot-cards .card-corner .card-rank {
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.bot-cards .card-corner .card-mini-suit {
+  font-size: 0.48rem;
+}
+
+.bot-cards .card-center-suit {
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Game Over Modal UI
+   ========================================================================== */
+.game-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.game-modal.hidden {
+  display: none !important;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  background: radial-gradient(circle at 50% 20%, #153c20 0%, #0a1f10 100%);
+  border: 2px solid var(--gold-primary);
+  border-radius: 20px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(212, 175, 55, 0.4),
+    inset 0 0 15px rgba(212, 175, 55, 0.2);
+  animation: modalScaleUp 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
+  z-index: 2;
+}
+
+.modal-icon {
+  font-size: 2.2rem;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--gold-light);
+  margin-bottom: 6px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 16px;
+}
+
+.modal-pot-box {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.modal-pot-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.modal-pot-val {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--gold-light);
+}
+
+.btn-next-hand {
+  width: 100%;
+  height: 48px;
+  background: var(--gold-gradient);
+  border: 1px solid var(--gold-light);
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #1a1202;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(212, 175, 55, 0.4);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-next-hand:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.btn-next-hand:active {
+  transform: scale(0.96);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScaleUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   Small Screen Adjustments
+   ========================================================================== */
+@media (max-width: 360px) {
+  .poker-table {
+    margin: 4px 4px 2px 4px;
+    border-radius: 26px;
+  }
+  
+  .seat-left {
+    left: 4px;
+  }
+  
+  .seat-right {
+    right: 4px;
+  }
+
+  .table-center-area {
+    width: calc(100% - 130px);
+  }
+
+  .community-slots .card-slot {
+    min-width: 30px;
+  }
+
+  .player-slots .player-card-slot {
+    width: 60px;
+  }
+
+  .action-btn {
+    height: 48px;
+  }
+
+  .btn-text {
+    font-size: 0.82rem;
+  }
+}
