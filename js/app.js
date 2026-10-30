@@ -36,6 +36,12 @@ let tickToggleState = false;
 const actionTagTimers = [];
 let turnTimerInterval = null;
 let sitOutAutoFoldTimeout = null;
+let currentTableScale = 1; // 모바일 화면 맞춤 테이블 스케일 (데스크톱 = 1)
+let isGameStarted = false; // 'Tap to Start' 터치 이후에만 true
+const MOBILE_FIT_QUERY = '(max-width: 940px), (max-height: 640px)';
+const TABLE_BASE_WIDTH = 900;
+const TABLE_BASE_HEIGHT = 540;
+const ACTION_BAR_RESERVE = 84;
 let turnTimerState = {
   endTime: 0,
   totalMs: 20000,
@@ -1481,21 +1487,26 @@ function showSeatActionTag(seatEl, text, className) {
   const pillRect = pillEl.getBoundingClientRect();
   const potRect = potEl ? potEl.getBoundingClientRect() : null;
 
-  let targetX = feltRect.width * 0.5;
-  let targetY = feltRect.height * 0.5;
+  // 모바일 스케일(transform: scale) 보정: 화면 좌표를 테이블 내부(비스케일) 좌표로 환산
+  const sc = currentTableScale > 0 ? currentTableScale : 1;
+  const feltW = feltRect.width / sc;
+  const feltH = feltRect.height / sc;
+
+  let targetX = feltW * 0.5;
+  let targetY = feltH * 0.5;
 
   if (feltRect.width > 0 && pillRect.width > 0) {
     // 1) 액션을 취한 플레이어 프로필 중심 좌표 (테이블 펠트 내부 기준)
-    const playerX = (pillRect.left + pillRect.width / 2) - feltRect.left;
-    const playerY = (pillRect.top + pillRect.height / 2) - feltRect.top;
+    const playerX = ((pillRect.left + pillRect.width / 2) - feltRect.left) / sc;
+    const playerY = ((pillRect.top + pillRect.height / 2) - feltRect.top) / sc;
 
     // 2) 테이블 정중앙 TOTAL POT 중심 좌표 (테이블 펠트 내부 기준)
     const potX = (potRect && potRect.width > 0)
-      ? (potRect.left + potRect.width / 2) - feltRect.left
-      : feltRect.width / 2;
+      ? ((potRect.left + potRect.width / 2) - feltRect.left) / sc
+      : feltW / 2;
     const potY = (potRect && potRect.height > 0)
-      ? (potRect.top + potRect.height / 2) - feltRect.top
-      : feltRect.height * 0.34;
+      ? ((potRect.top + potRect.height / 2) - feltRect.top) / sc
+      : feltH * 0.34;
 
     // 3) 플레이어(x, y)와 TOTAL POT(potX, potY) 딱 그 둘 사이의 빈 공간(허공) 중점 계산
     targetX = playerX + (potX - playerX) * 0.52;
@@ -1504,15 +1515,15 @@ function showSeatActionTag(seatEl, text, className) {
     // 내 자리(PLAYER 1)는 정중앙 수직선상에 내 홀 카드 2장(#player-slots)이 놓여 있으므로
     // 내 카드와 커뮤니티 카드 사이의 우측 빈 펠트 허공으로 살짝 비켜서 카드 가림을 100% 방지
     if (seatId === 'seat-player-1') {
-      targetX = playerX + (potX - playerX) * 0.5 + Math.min(feltRect.width * 0.22, 96);
+      targetX = playerX + (potX - playerX) * 0.5 + Math.min(feltW * 0.22, 96);
       targetY = playerY + (potY - playerY) * 0.54;
     }
 
     // 좌우 테이블 림 밖으로 잘리지 않도록 안전 여백 클램핑
-    const padX = Math.min(feltRect.width * 0.18, 84);
+    const padX = Math.min(feltW * 0.18, 84);
     const padY = 48;
-    targetX = Math.max(padX, Math.min(feltRect.width - padX, targetX));
-    targetY = Math.max(padY, Math.min(feltRect.height - padY, targetY));
+    targetX = Math.max(padX, Math.min(feltW - padX, targetX));
+    targetY = Math.max(padY, Math.min(feltH - padY, targetY));
   }
 
   const isHeavyImpact = className === 'tag-raise' || className === 'tag-allin';
@@ -2430,19 +2441,52 @@ function setupBuyInEvents() {
   }
 }
 
-function initGame() {
-  console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
+/**
+ * 모바일 뷰포트 맞춤: 화면 크기에 따라 테이블 전체 스케일(--table-scale)을 자동 계산
+ * (데스크톱처럼 충분히 큰 화면에서는 1.0 유지)
+ */
+function updateTableScale() {
+  const isMobileFit = window.matchMedia(MOBILE_FIT_QUERY).matches;
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
 
-  // 브라우저 오토플레이 정책 해제: 사용자의 첫 화면 터치/클릭/키 입력 시 AudioContext 즉시 활성화
-  ['pointerdown', 'click', 'touchstart', 'keydown'].forEach(evtName => {
-    document.addEventListener(evtName, () => {
-      unlockAudioContext();
-    }, { once: true, passive: true });
-  });
+  let scale = 1;
+  if (isMobileFit) {
+    scale = Math.min(
+      (vw - 8) / TABLE_BASE_WIDTH,
+      (vh - ACTION_BAR_RESERVE) / TABLE_BASE_HEIGHT,
+      1
+    );
+    scale = Math.max(0.3, scale);
+  }
+  currentTableScale = scale;
+  document.documentElement.style.setProperty('--table-scale', scale.toFixed(4));
+}
 
-  setupEventListeners();
-  setupBuyInEvents();
-  updateActionButtonsLabel();
+/**
+ * 'TAP TO START' 오버레이: 사용자의 터치/클릭 순간에만 AudioContext를 resume()하고
+ * 게임 루프(환전소 -> 첫 카드 분배)를 시작
+ */
+function startGameFromTap() {
+  if (isGameStarted) return;
+  isGameStarted = true;
+
+  const ctx = unlockAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+  try {
+    playSound('sound-card');
+  } catch (err) {
+    // 사운드 실패가 게임 시작을 막지 않도록 무시
+  }
+
+  const overlay = document.getElementById('start-overlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+    setTimeout(() => { overlay.style.display = 'none'; }, 320);
+  }
+
   centerTableScroll();
 
   if (!gameState.isSeated) {
@@ -2452,5 +2496,42 @@ function initGame() {
   }
 }
 
+function initGame() {
+  console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
+
+  updateTableScale();
+
+  setupEventListeners();
+  setupBuyInEvents();
+  updateActionButtonsLabel();
+  centerTableScroll();
+
+  const startOverlay = document.getElementById('start-overlay');
+  const startBtn = document.getElementById('btn-tap-start');
+
+  if (startOverlay && startBtn) {
+    // 터치 직후 한 번만 실행 (click + touchend 중복 방지)
+    let handled = false;
+    const onStart = (e) => {
+      if (handled) return;
+      handled = true;
+      if (e && e.cancelable) e.preventDefault();
+      startGameFromTap();
+    };
+    startBtn.addEventListener('click', onStart);
+    startBtn.addEventListener('touchend', onStart, { passive: false });
+    startOverlay.addEventListener('click', onStart);
+  } else {
+    // 오버레이가 없을 때의 안전 폴백
+    startGameFromTap();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', initGame);
-window.addEventListener('resize', centerTableScroll);
+window.addEventListener('resize', () => {
+  updateTableScale();
+  centerTableScroll();
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { updateTableScale(); centerTableScroll(); }, 200);
+});

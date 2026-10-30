@@ -12,6 +12,19 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- 모바일 사운드 자동재생 차단 해결: 터치해야 오디오 활성화 + 게임 시작 -->
+  <div id="start-overlay" class="start-overlay" role="dialog" aria-modal="true" aria-label="게임 시작">
+    <div class="start-overlay-inner">
+      <div class="start-suits" aria-hidden="true">♠ ♥ ♣ ♦</div>
+      <h1 class="start-title">TEXAS HOLD'EM</h1>
+      <button type="button" id="btn-tap-start" class="start-tap-btn">
+        <span class="start-tap-main">▶ 게임 시작</span>
+        <span class="start-tap-sub">TAP TO START</span>
+      </button>
+      <p class="start-hint">🔊 화면을 터치하면 사운드가 켜지고 게임이 시작됩니다</p>
+    </div>
+  </div>
+
   <!-- 메인 모바일 컨테이너 -->
   <div id="game-container" class="game-container">
     
