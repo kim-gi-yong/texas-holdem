@@ -244,112 +244,111 @@
         <span class="btn-subtext">(+15초 / 판당 1회)</span>
       </button>
     </nav>
+  </div> <!-- /game-container -->
 
-    <!-- 맞춤형 레이즈 슬라이더 패널 (Custom Raise UI) -->
-    <div id="raise-slider-panel" class="raise-slider-panel" style="display: none;">
-      <div class="raise-panel-header">
-        <span class="raise-title">레이즈 금액 설정</span>
-        <div class="raise-amount-badge">
-          <span class="casino-chip chip-sm"></span>
-          <span id="raise-amount-text">$100</span>
-        </div>
-      </div>
-      <div class="raise-slider-track">
-        <span class="slider-limit-label" id="raise-min-val">$100</span>
-        <input type="range" id="raise-slider" min="100" max="1000" step="25" value="100">
-        <span class="slider-limit-label" id="raise-max-val">$1,000</span>
-      </div>
-      <div class="raise-preset-buttons">
-        <button type="button" class="preset-btn" data-preset="2x">2X</button>
-        <button type="button" class="preset-btn" data-preset="3x">3X</button>
-        <button type="button" class="preset-btn" data-preset="pot">POT</button>
-        <button type="button" class="preset-btn" data-preset="all">MAX</button>
-      </div>
-      <div class="raise-panel-actions">
-        <button type="button" id="btn-raise-cancel" class="raise-action-cancel">취소</button>
-        <button type="button" id="btn-raise-confirm" class="raise-action-confirm">레이즈 확인 (Bet)</button>
+  <!-- 맞춤형 레이즈 슬라이더 패널 (Custom Raise UI - 뷰포트 최상위 독립 오버레이) -->
+  <div id="raise-slider-panel" class="raise-slider-panel" style="display: none;">
+    <div class="raise-panel-header">
+      <span class="raise-title">레이즈 금액 설정</span>
+      <div class="raise-amount-badge">
+        <span class="casino-chip chip-sm"></span>
+        <span id="raise-amount-text">$100</span>
       </div>
     </div>
-
-    <!-- 자리 비움(Sit-Out) 오버레이 및 다시 시작하기(I'm Back) 초대형 버튼 모달 -->
-    <div id="sitout-overlay" class="sitout-overlay" role="dialog" aria-modal="true" aria-labelledby="sitout-title" style="display: none;">
-      <div class="sitout-backdrop"></div>
-      <div class="sitout-box">
-        <div class="sitout-badge">💤 SIT-OUT MODE (자리 비움)</div>
-        <h2 id="sitout-title" class="sitout-title">2회 연속 시간 초과로 자리 비움 전환됨</h2>
-        <p class="sitout-desc">현재 봇들끼리 게임이 자동 진행 중입니다. 테이블에 복귀하려면 아래 버튼을 눌러주세요.</p>
-        <button type="button" id="btn-im-back" class="im-back-giant-btn">
-          <span class="im-back-main">▶ 다시 시작하기 (게임 참여)</span>
-          <span class="im-back-sub">다음 판(Next Hand)부터 즉시 카드를 받고 베팅에 참여합니다</span>
-        </button>
-      </div>
+    <div class="raise-slider-track">
+      <span class="slider-limit-label" id="raise-min-val">$100</span>
+      <input type="range" id="raise-slider" min="100" max="1000" step="25" value="100">
+      <span class="slider-limit-label" id="raise-max-val">$1,000</span>
     </div>
-
-    <!-- 게임 종료 UI 모달 -->
-    <div id="game-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-icon">🏆</div>
-        <h2 id="modal-title" class="modal-title">게임 종료!</h2>
-        <p class="modal-subtitle">승자 판독 엔진</p>
-        
-        <div class="modal-pot-box">
-          <span class="modal-pot-label">WINNER POT</span>
-          <span class="modal-pot-val" id="modal-pot-val">$0</span>
-        </div>
-
-        <button type="button" id="next-hand-btn" class="next-hand-btn">NEXT HAND (다음 판)</button>
-      </div>
+    <div class="raise-preset-buttons">
+      <button type="button" class="preset-btn" data-preset="2x">2X</button>
+      <button type="button" class="preset-btn" data-preset="3x">3X</button>
+      <button type="button" class="preset-btn" data-preset="pot">POT</button>
+      <button type="button" class="preset-btn" data-preset="all">MAX</button>
     </div>
+    <div class="raise-panel-actions">
+      <button type="button" id="btn-raise-cancel" class="raise-action-cancel">취소</button>
+      <button type="button" id="btn-raise-confirm" class="raise-action-confirm">레이즈 확인 (Bet)</button>
+    </div>
+  </div>
 
-    <!-- 입장 바이인 환전소 모달 (Buy-in Modal) -->
-    <div id="buyin-modal" class="buyin-modal active" role="dialog" aria-modal="true" aria-labelledby="buyin-title">
-      <div class="buyin-backdrop"></div>
-      <div class="buyin-content">
-        <div class="buyin-header-icon">🏦</div>
-        <h2 id="buyin-title" class="buyin-title">CASINO CASHIER</h2>
-        <p class="buyin-subtitle" id="buyin-subtitle">테이블에 입장할 바이인(Buy-in) 칩을 선택하세요</p>
+  <!-- 자리 비움(Sit-Out) 오버레이 및 다시 시작하기(I'm Back) 초대형 버튼 모달 -->
+  <div id="sitout-overlay" class="sitout-overlay" role="dialog" aria-modal="true" aria-labelledby="sitout-title" style="display: none;">
+    <div class="sitout-backdrop"></div>
+    <div class="sitout-box">
+      <div class="sitout-badge">💤 SIT-OUT MODE (자리 비움)</div>
+      <h2 id="sitout-title" class="sitout-title">2회 연속 시간 초과로 자리 비움 전환됨</h2>
+      <p class="sitout-desc">현재 봇들끼리 게임이 자동 진행 중입니다. 테이블에 복귀하려면 아래 버튼을 눌러주세요.</p>
+      <button type="button" id="btn-im-back" class="im-back-giant-btn">
+        <span class="im-back-main">▶ 다시 시작하기 (게임 참여)</span>
+        <span class="im-back-sub">다음 판(Next Hand)부터 즉시 카드를 받고 베팅에 참여합니다</span>
+      </button>
+    </div>
+  </div>
 
-        <div class="buyin-options-grid">
-          <div class="buyin-card active" data-amount="1000">
-            <div class="buyin-chip-icon">
-              <span class="stacked-chip chip-100"></span>
-            </div>
-            <div class="buyin-card-name">표준 바이인</div>
-            <div class="buyin-card-val">$1,000</div>
-            <div class="buyin-card-tag">20 BB (기본)</div>
+  <!-- 게임 종료 UI 모달 -->
+  <div id="game-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-icon">🏆</div>
+      <h2 id="modal-title" class="modal-title">게임 종료!</h2>
+      <p class="modal-subtitle">승자 판독 엔진</p>
+      
+      <div class="modal-pot-box">
+        <span class="modal-pot-label">WINNER POT</span>
+        <span class="modal-pot-val" id="modal-pot-val">$0</span>
+      </div>
+
+      <button type="button" id="next-hand-btn" class="next-hand-btn">NEXT HAND (다음 판)</button>
+    </div>
+  </div>
+
+  <!-- 입장 바이인 환전소 모달 (Buy-in Modal) -->
+  <div id="buyin-modal" class="buyin-modal active" role="dialog" aria-modal="true" aria-labelledby="buyin-title">
+    <div class="buyin-backdrop"></div>
+    <div class="buyin-content">
+      <div class="buyin-header-icon">🏦</div>
+      <h2 id="buyin-title" class="buyin-title">CASINO CASHIER</h2>
+      <p class="buyin-subtitle" id="buyin-subtitle">테이블에 입장할 바이인(Buy-in) 칩을 선택하세요</p>
+
+      <div class="buyin-options-grid">
+        <div class="buyin-card active" data-amount="1000">
+          <div class="buyin-chip-icon">
+            <span class="stacked-chip chip-100"></span>
           </div>
-
-          <div class="buyin-card" data-amount="2000">
-            <div class="buyin-chip-icon">
-              <span class="stacked-chip chip-500"></span>
-            </div>
-            <div class="buyin-card-name">딥스택 바이인</div>
-            <div class="buyin-card-val">$2,000</div>
-            <div class="buyin-card-tag">40 BB (추천)</div>
-          </div>
-
-          <div class="buyin-card" data-amount="5000">
-            <div class="buyin-chip-icon">
-              <span class="stacked-chip chip-1000"></span>
-            </div>
-            <div class="buyin-card-name">하이롤러</div>
-            <div class="buyin-card-val">$5,000</div>
-            <div class="buyin-card-tag">100 BB (VIP)</div>
-          </div>
+          <div class="buyin-card-name">표준 바이인</div>
+          <div class="buyin-card-val">$1,000</div>
+          <div class="buyin-card-tag">20 BB (기본)</div>
         </div>
 
-        <div class="buyin-summary-box">
-          <span class="buyin-summary-label">입장 칩 구매액:</span>
-          <span class="buyin-summary-amount" id="buyin-selected-amount">$1,000</span>
+        <div class="buyin-card" data-amount="2000">
+          <div class="buyin-chip-icon">
+            <span class="stacked-chip chip-500"></span>
+          </div>
+          <div class="buyin-card-name">딥스택 바이인</div>
+          <div class="buyin-card-val">$2,000</div>
+          <div class="buyin-card-tag">40 BB (추천)</div>
         </div>
 
-        <button type="button" id="btn-buyin-confirm" class="buyin-confirm-btn">
-          <span>칩 구매하고 테이블 앉기</span>
-        </button>
+        <div class="buyin-card" data-amount="5000">
+          <div class="buyin-chip-icon">
+            <span class="stacked-chip chip-1000"></span>
+          </div>
+          <div class="buyin-card-name">하이롤러</div>
+          <div class="buyin-card-val">$5,000</div>
+          <div class="buyin-card-tag">100 BB (VIP)</div>
+        </div>
       </div>
-    </div>
 
+      <div class="buyin-summary-box">
+        <span class="buyin-summary-label">입장 칩 구매액:</span>
+        <span class="buyin-summary-amount" id="buyin-selected-amount">$1,000</span>
+      </div>
+
+      <button type="button" id="btn-buyin-confirm" class="buyin-confirm-btn">
+        <span>칩 구매하고 테이블 앉기</span>
+      </button>
+    </div>
   </div>
 
   <!-- 사운드 이펙트 오디오 태그 -->

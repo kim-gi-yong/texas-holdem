@@ -1778,11 +1778,14 @@ html, body {
 .sitout-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1600;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  z-index: 99990;
   display: none;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 16px;
   box-sizing: border-box;
 }
 
@@ -1793,19 +1796,24 @@ html, body {
 .sitout-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(4, 10, 16, 0.72);
-  backdrop-filter: blur(5px);
+  width: 100%;
+  height: 100%;
+  background: rgba(4, 10, 16, 0.85);
+  backdrop-filter: blur(8px);
 }
 
 .sitout-box {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: radial-gradient(circle at 50% 0%, #172a3a 0%, #091118 100%);
   border: 2.5px solid #ffd700;
-  border-radius: 26px;
-  padding: 28px 24px;
+  border-radius: 24px;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1819,38 +1827,38 @@ html, body {
 
 .sitout-badge {
   display: inline-block;
-  padding: 5px 14px;
+  padding: 4px 12px;
   border-radius: 999px;
   background: rgba(239, 68, 68, 0.22);
   border: 1.5px solid #f87171;
   color: #fca5a5;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .sitout-title {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: clamp(1.1rem, 5vw, 1.35rem);
   font-weight: 800;
   color: #ffffff;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 .sitout-desc {
-  font-size: 0.86rem;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.45;
-  margin: 0 0 22px 0;
+  font-size: clamp(0.78rem, 3.5vw, 0.86rem);
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.4;
+  margin: 0 0 18px 0;
 }
 
 .im-back-giant-btn {
   width: 100%;
-  min-height: 88px;
-  padding: 18px 22px;
-  border-radius: 18px;
+  min-height: 72px;
+  padding: 14px 18px;
+  border-radius: 16px;
   border: 2.5px solid #bbf7d0;
   background: linear-gradient(180deg, #22c55e 0%, #16a34a 52%, #14532d 100%);
   color: #ffffff;
@@ -1858,7 +1866,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   box-shadow:
     0 12px 30px rgba(22, 163, 74, 0.65),
@@ -1870,7 +1878,7 @@ html, body {
 
 .im-back-giant-btn:hover {
   filter: brightness(1.14);
-  transform: translateY(-3px) scale(1.02);
+  transform: translateY(-2px) scale(1.01);
   box-shadow:
     0 16px 36px rgba(22, 163, 74, 0.85),
     0 0 38px rgba(74, 222, 128, 0.9);
@@ -1882,14 +1890,14 @@ html, body {
 
 .im-back-main {
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: clamp(1.15rem, 5vw, 1.4rem);
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .im-back-sub {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #dcfce7;
 }
@@ -2173,11 +2181,14 @@ html, body {
 .game-modal {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100dvh;
   display: none; /* 평소에는 완전히 숨김 */
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-  padding: 20px;
+  z-index: 99992;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .game-modal.active {
@@ -2187,15 +2198,20 @@ html, body {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(6px);
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
   position: relative;
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: radial-gradient(circle at 50% 20%, #153c20 0%, #0a1f10 100%);
   border: 2px solid var(--gold-primary);
   border-radius: 20px;
@@ -2518,10 +2534,12 @@ body::-webkit-scrollbar-thumb:hover {
 .buyin-modal {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100dvh;
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: 99995;
   padding: 16px;
   box-sizing: border-box;
 }
@@ -2533,6 +2551,8 @@ body::-webkit-scrollbar-thumb:hover {
 .buyin-backdrop {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(4, 8, 12, 0.88);
   backdrop-filter: blur(10px);
   animation: fadeIn 0.3s ease-out;
@@ -2542,6 +2562,9 @@ body::-webkit-scrollbar-thumb:hover {
   position: relative;
   width: 100%;
   max-width: 440px;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: radial-gradient(circle at 50% 10%, #15222e 0%, #080e14 100%);
   border: 2px solid var(--gold-primary);
   border-radius: 24px;
