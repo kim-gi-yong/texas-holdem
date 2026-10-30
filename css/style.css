@@ -137,17 +137,18 @@ html, body {
   /* 옆으로 널찍한 황금비율 타원형(Horizontal Oval) */
   border-radius: 260px / 170px;
   background: 
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.14) 0%, transparent 60%),
-    linear-gradient(135deg, #442416 0%, #2b150a 45%, #180903 100%);
-  border: 12px solid #200f07;
-  outline: 2px solid rgba(212, 175, 55, 0.45);
-  /* 두툼하고 고급스러운 브라운 가죽 쿠션 질감 및 3D 입체 음영 */
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.18) 0%, transparent 60%),
+    linear-gradient(135deg, #5c321e 0%, #381c0e 45%, #220f06 100%);
+  border: 12px solid #2d1408;
+  outline: 2.5px solid rgba(255, 215, 0, 0.7);
+  /* 럭셔리 골드 림 광채 및 입체 카지노 레일 음영 */
   box-shadow: 
-    0 28px 65px rgba(0, 0, 0, 0.95),
-    0 10px 28px rgba(0, 0, 0, 0.85),
-    inset 0 3px 8px rgba(255, 255, 255, 0.3),
-    inset 0 -12px 24px rgba(0, 0, 0, 0.95),
-    inset 0 0 22px rgba(10, 5, 2, 0.98);
+    0 0 32px rgba(212, 175, 55, 0.35),
+    0 24px 60px rgba(0, 0, 0, 0.95),
+    0 8px 20px rgba(0, 0, 0, 0.85),
+    inset 0 3px 8px rgba(255, 255, 255, 0.35),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.9),
+    inset 0 0 18px rgba(10, 5, 2, 0.95);
   overflow: hidden;
 }
 
@@ -156,29 +157,29 @@ html, body {
   position: absolute;
   inset: 2px;
   border-radius: 228px / 138px;
-  border: 1.5px dashed rgba(212, 175, 55, 0.28);
+  border: 1.5px dashed rgba(255, 215, 0, 0.45);
   pointer-events: none;
   z-index: 1;
 }
 
-/* Table Felt - 깊이감 있는 실제 카지노 벨벳 펠트천 (Radial Gradient & Vignette) */
+/* Table Felt - 화사하고 선명한 카지노 에메랄드 벨벳 펠트천 (화면 어두움 및 뭉개짐 완전 해결) */
 .table-felt {
   flex: 1;
   position: relative;
   border-radius: 215px / 125px;
-  background: radial-gradient(ellipse at 50% 50%, #1a8b3f 0%, #0d632a 38%, #06441b 72%, #02220c 100%);
-  border: 2px solid rgba(212, 175, 55, 0.7);
+  background: radial-gradient(ellipse at 50% 50%, #189844 0%, #107532 42%, #0a5723 75%, #063c17 100%);
+  border: 2.5px solid rgba(255, 215, 0, 0.85);
   box-shadow: 
-    inset 0 0 60px rgba(0, 0, 0, 0.85),
-    inset 0 0 20px rgba(1, 22, 7, 0.95),
-    0 0 0 1px rgba(0, 0, 0, 0.7);
+    0 0 16px rgba(255, 215, 0, 0.3),
+    inset 0 0 45px rgba(0, 0, 0, 0.75),
+    inset 0 0 16px rgba(1, 22, 7, 0.9);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 2;
 }
 
-/* Gold Felt Inner Trim Line - 가로형 타원 금박 베팅 라인 */
+/* Gold Felt Inner Trim Line - 가로형 타원 선명한 금박 베팅 라인 */
 .table-felt::before {
   content: '';
   position: absolute;
@@ -187,8 +188,8 @@ html, body {
   left: 16px;
   right: 16px;
   border-radius: 203px / 113px;
-  border: 1.5px solid rgba(212, 175, 55, 0.35);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.15), inset 0 0 10px rgba(212, 175, 55, 0.15);
+  border: 1.8px solid rgba(255, 215, 0, 0.55);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.35), inset 0 0 12px rgba(255, 215, 0, 0.25);
   pointer-events: none;
 }
 
@@ -2858,12 +2859,12 @@ body::-webkit-scrollbar-thumb:hover {
     position: relative;
     left: auto;
     top: auto;
-    width: 900px;
-    min-width: 900px;
-    max-width: 900px;
-    height: 540px;
-    min-height: 540px;
-    max-height: 540px;
+    width: 880px;
+    min-width: 880px;
+    max-width: 880px;
+    height: 520px;
+    min-height: 520px;
+    max-height: 520px;
     margin: auto;
     transform-origin: center center;
     transform: scale(var(--table-scale));
