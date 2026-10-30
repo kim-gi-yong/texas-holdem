@@ -379,6 +379,52 @@ function playSynthesizedSound(type, amount = 50) {
 }
 
 // ==========================================================================
+// 2-2. 플레이어 칩 잔액 localStorage 영구 저장 및 자동 로드 시스템
+// ==========================================================================
+const STORAGE_KEY_PLAYER_CHIPS = 'texas_holdem_player_chips';
+const DEFAULT_START_CHIPS = 10000; // 첫 접속 시 지급되는 기본 시작 금액 ($10,000)
+
+/**
+ * localStorage에서 플레이어의 칩 잔액을 불러오기
+ * 저장된 데이터가 존재하면 해당 금액을 복원하고,
+ * 기록이 아예 없는 첫 방문일 때만 기본 시작 금액($10,000)을 부여 및 저장
+ */
+function loadPlayerChipsFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_PLAYER_CHIPS);
+    if (saved !== null) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        console.log(`[localStorage] 플레이어 칩 잔액 복원 성공: $${parsed.toLocaleString()}`);
+        return { chips: parsed, isFirstTime: false };
+      }
+    }
+  } catch (err) {
+    console.warn('[localStorage] 칩 잔액 로드 실패, 기본값 사용:', err);
+  }
+
+  console.log(`[localStorage] 신규 플레이어 첫 접속: 기본 시작 금액 $${DEFAULT_START_CHIPS.toLocaleString()} 부여`);
+  savePlayerChipsToStorage(DEFAULT_START_CHIPS);
+  return { chips: DEFAULT_START_CHIPS, isFirstTime: true };
+}
+
+/**
+ * 플레이어의 현재 칩 잔액을 localStorage에 실시간 덮어씌워 영구 저장
+ */
+function savePlayerChipsToStorage(amount) {
+  try {
+    let chipsToSave = amount;
+    if (chipsToSave === undefined) {
+      const human = (gameState && gameState.players) ? gameState.players.find(p => p.isHuman) : null;
+      chipsToSave = human ? human.chips : DEFAULT_START_CHIPS;
+    }
+    localStorage.setItem(STORAGE_KEY_PLAYER_CHIPS, chipsToSave.toString());
+  } catch (err) {
+    console.warn('[localStorage] 칩 데이터 저장 실패:', err);
+  }
+}
+
+// ==========================================================================
 // 3. 게임 상태 관리 (Game State)
 // ==========================================================================
 const gameState = {
@@ -387,12 +433,12 @@ const gameState = {
   // 테이블 시계 방향 좌석 순서:
   // Player 1 (하단 중앙) -> Bot 5 (하단 좌측) -> Bot 1 (좌측) -> Bot 2 (상단 좌측) -> Bot 3 (상단 우측) -> Bot 4 (우측)
   players: [
-    { id: 'player1', name: 'PLAYER 1', isHuman: true, chips: 1000, hand: [], isFolded: false, seatId: 'seat-player-1' },
-    { id: 'bot5', name: 'Bot 5', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-5' },
-    { id: 'bot1', name: 'Bot 1', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-1' },
-    { id: 'bot2', name: 'Bot 2', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-2' },
-    { id: 'bot3', name: 'Bot 3', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-3' },
-    { id: 'bot4', name: 'Bot 4', isHuman: false, chips: 1000, hand: [], isFolded: false, seatId: 'seat-bot-4' }
+    { id: 'player1', name: 'PLAYER 1', isHuman: true, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-player-1' },
+    { id: 'bot5', name: 'Bot 5', isHuman: false, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-bot-5' },
+    { id: 'bot1', name: 'Bot 1', isHuman: false, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-bot-1' },
+    { id: 'bot2', name: 'Bot 2', isHuman: false, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-bot-2' },
+    { id: 'bot3', name: 'Bot 3', isHuman: false, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-bot-3' },
+    { id: 'bot4', name: 'Bot 4', isHuman: false, chips: DEFAULT_START_CHIPS, hand: [], isFolded: false, seatId: 'seat-bot-4' }
   ],
   pot: 0,
   dealerIndex: 4, // 첫 판에 PLAYER 1(index 0)이 빅 블라인드(BB)가 되어 프리플롭 체크(CHECK)를 바로 경험할 수 있도록 설정
@@ -402,7 +448,7 @@ const gameState = {
   currentBet: BIG_BLIND,
   roundBets: {},  // 플레이어별 해당 라운드 베팅 누적액
   hasBotRaisedThisStreet: false,
-  selectedBuyIn: 1000, // 환전소(Buy-in) 선택 금액
+  selectedBuyIn: DEFAULT_START_CHIPS, // 환전소(Buy-in) 금액
   isSeated: false,     // 바이인 완료 후 착석 여부
   isBettingInProgress: false,
   isPlayerAllIn: false,
@@ -2130,6 +2176,11 @@ function updatePlayerChipsDOM(playerId) {
       stackEl.innerHTML = generateChipStackHTML(player.chips);
     }
   }
+
+  // 플레이어(인간)의 칩 잔액에 변동이 생기면 즉시 localStorage에 덮어씌워 실시간 영구 저장
+  if (player.isHuman) {
+    savePlayerChipsToStorage(player.chips);
+  }
 }
 
 function updatePotDOM() {
@@ -2369,37 +2420,37 @@ function showBuyInModal(isRebuy = false) {
   const titleEl = document.getElementById('buyin-title');
   const subtitleEl = document.getElementById('buyin-subtitle');
   const confirmBtn = document.getElementById('btn-buyin-confirm');
-  const summaryAmountEl = document.getElementById('buyin-selected-amount');
+  const walletBalEl = document.getElementById('buyin-wallet-balance');
+  const walletDescEl = document.getElementById('buyin-wallet-desc');
+
+  const human = gameState.players.find(p => p.isHuman);
+  const currentBalance = human ? human.chips : 0;
 
   if (isRebuy) {
     if (titleEl) titleEl.textContent = '리바이(Re-buy) 환전소';
-    if (subtitleEl) subtitleEl.textContent = '칩이 모두 소진되었습니다! 재충전 후 테이블에 복귀하세요.';
+    if (subtitleEl) subtitleEl.textContent = '칩이 모두 소진되었습니다! 재충전 지원금을 받고 복귀하세요.';
+    if (walletBalEl) walletBalEl.textContent = `$${DEFAULT_START_CHIPS.toLocaleString()}`;
+    if (walletDescEl) walletDescEl.textContent = `🔄 무료 재충전 지원금 $${DEFAULT_START_CHIPS.toLocaleString()}이 준비되었습니다`;
     if (confirmBtn) {
       const btnSpan = confirmBtn.querySelector('span');
-      if (btnSpan) btnSpan.textContent = '칩 재구매하고 복귀하기';
+      if (btnSpan) btnSpan.textContent = '칩 재충전 및 테이블 복귀';
     }
   } else {
+    const isFirstTime = (localStorage.getItem(STORAGE_KEY_PLAYER_CHIPS) === null);
+    const balance = currentBalance > 0 ? currentBalance : loadPlayerChipsFromStorage().chips;
     if (titleEl) titleEl.textContent = 'CASINO CASHIER';
-    if (subtitleEl) subtitleEl.textContent = '테이블에 입장할 바이인(Buy-in) 칩을 선택하세요';
+    if (subtitleEl) subtitleEl.textContent = '보유 칩을 확인하고 테이블에 착석하세요';
+    if (walletBalEl) walletBalEl.textContent = `$${balance.toLocaleString()}`;
+    if (walletDescEl) {
+      walletDescEl.textContent = isFirstTime
+        ? `🎉 신규 플레이어 시작 지원금 $${DEFAULT_START_CHIPS.toLocaleString()} 지급 완료!`
+        : '💾 이전 게임의 칩 잔액이 안전하게 복원되었습니다';
+    }
     if (confirmBtn) {
       const btnSpan = confirmBtn.querySelector('span');
-      if (btnSpan) btnSpan.textContent = '칩 구매하고 테이블 앉기';
+      if (btnSpan) btnSpan.textContent = '테이블 앉기 (게임 시작)';
     }
   }
-
-  gameState.selectedBuyIn = gameState.selectedBuyIn || 1000;
-  if (summaryAmountEl) {
-    summaryAmountEl.textContent = `$${gameState.selectedBuyIn.toLocaleString()}`;
-  }
-
-  document.querySelectorAll('.buyin-card').forEach(card => {
-    const amt = parseInt(card.dataset.amount, 10);
-    if (amt === gameState.selectedBuyIn) {
-      card.classList.add('active');
-    } else {
-      card.classList.remove('active');
-    }
-  });
 
   if (modalEl) {
     modalEl.classList.add('active');
@@ -2416,35 +2467,22 @@ function hideBuyInModal() {
 }
 
 function setupBuyInEvents() {
-  const cards = document.querySelectorAll('.buyin-card');
-  const summaryAmountEl = document.getElementById('buyin-selected-amount');
   const confirmBtn = document.getElementById('btn-buyin-confirm');
-
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      cards.forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      const amount = parseInt(card.dataset.amount, 10) || 1000;
-      gameState.selectedBuyIn = amount;
-      if (summaryAmountEl) {
-        summaryAmountEl.textContent = `$${amount.toLocaleString()}`;
-      }
-      playSound('sound-bet');
-    });
-  });
 
   if (confirmBtn) {
     confirmBtn.addEventListener('click', () => {
       playSound('sound-bet');
-      const buyInAmount = gameState.selectedBuyIn || 1000;
       const human = gameState.players.find(p => p.isHuman);
       if (human) {
-        human.chips = buyInAmount;
+        if (human.chips < BIG_BLIND) {
+          human.chips = DEFAULT_START_CHIPS;
+        }
+        savePlayerChipsToStorage(human.chips);
       }
 
       gameState.players.forEach(p => {
         if (!p.isHuman && p.chips < BIG_BLIND) {
-          p.chips = buyInAmount;
+          p.chips = DEFAULT_START_CHIPS;
         }
         updatePlayerChipsDOM(p.id);
       });
@@ -2511,17 +2549,39 @@ function updateTableScale() {
 function initGame() {
   console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
 
-  // 모바일 오디오 컨텍스트 정책: 사용자의 첫 화면 터치/클릭 시 즉시 활성화
+  // 1. localStorage에서 플레이어 칩 불러오기 (첫 방문 시 기본 $10,000 자동 부여)
+  const storageData = loadPlayerChipsFromStorage();
+  const human = gameState.players.find(p => p.isHuman);
+  if (human) {
+    human.chips = storageData.chips;
+  }
+  // 봇들의 칩도 테이블 기본 스테이크($10,000)로 초기화
+  gameState.players.forEach(p => {
+    if (!p.isHuman) p.chips = DEFAULT_START_CHIPS;
+  });
+
+  // 2. 모바일 오디오 컨텍스트 정책: 사용자의 첫 화면 터치/클릭 시 즉시 활성화
   ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evtName => {
     document.addEventListener(evtName, () => {
       unlockAudioContext();
     }, { once: true, passive: true });
   });
 
+  // 3. 브라우저 탭 닫기 및 새로고침 시 실시간 안전 동기화
+  window.addEventListener('beforeunload', () => {
+    savePlayerChipsToStorage();
+  });
+  window.addEventListener('pagehide', () => {
+    savePlayerChipsToStorage();
+  });
+
   updateTableScale();
   setupEventListeners();
   setupBuyInEvents();
   updateActionButtonsLabel();
+
+  // 모든 좌석 칩 UI 초기 렌더링
+  gameState.players.forEach(p => updatePlayerChipsDOM(p.id));
 
   if (!gameState.isSeated) {
     showBuyInModal(false);

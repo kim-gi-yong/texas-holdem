@@ -47,7 +47,7 @@
             <span class="player-name">Bot 2</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips">$1,000</span>
+              <span class="player-chips">$10,000</span>
             </span>
           </div>
           <div class="bot-cards" aria-label="Bot 2 홀 카드">
@@ -69,7 +69,7 @@
             <span class="player-name">Bot 3</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips">$1,000</span>
+              <span class="player-chips">$10,000</span>
             </span>
           </div>
           <div class="bot-cards" aria-label="Bot 3 홀 카드">
@@ -91,7 +91,7 @@
             <span class="player-name">Bot 1</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips">$1,000</span>
+              <span class="player-chips">$10,000</span>
             </span>
           </div>
           <div class="bot-cards" aria-label="Bot 1 홀 카드">
@@ -144,7 +144,7 @@
             <span class="player-name">Bot 4</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips">$1,000</span>
+              <span class="player-chips">$10,000</span>
             </span>
           </div>
           <div class="bot-cards" aria-label="Bot 4 홀 카드">
@@ -166,7 +166,7 @@
             <span class="player-name">Bot 5</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips">$1,000</span>
+              <span class="player-chips">$10,000</span>
             </span>
           </div>
           <div class="bot-cards" aria-label="Bot 5 홀 카드">
@@ -199,7 +199,7 @@
             <span class="player-name">PLAYER 1</span>
             <span class="player-chips-box">
               <span class="casino-chip chip-sm"></span>
-              <span class="player-chips" id="player-chips">$1,000</span>
+              <span class="player-chips" id="player-chips">$10,000</span>
             </span>
           </div>
         </section>
@@ -303,44 +303,17 @@
     <div class="buyin-content">
       <div class="buyin-header-icon">🏦</div>
       <h2 id="buyin-title" class="buyin-title">CASINO CASHIER</h2>
-      <p class="buyin-subtitle" id="buyin-subtitle">테이블에 입장할 바이인(Buy-in) 칩을 선택하세요</p>
+      <p class="buyin-subtitle" id="buyin-subtitle">보유 칩을 확인하고 테이블에 착석하세요</p>
 
-      <div class="buyin-options-grid">
-        <div class="buyin-card active" data-amount="1000">
-          <div class="buyin-chip-icon">
-            <span class="stacked-chip chip-100"></span>
-          </div>
-          <div class="buyin-card-name">표준 바이인</div>
-          <div class="buyin-card-val">$1,000</div>
-          <div class="buyin-card-tag">20 BB (기본)</div>
-        </div>
-
-        <div class="buyin-card" data-amount="2000">
-          <div class="buyin-chip-icon">
-            <span class="stacked-chip chip-500"></span>
-          </div>
-          <div class="buyin-card-name">딥스택 바이인</div>
-          <div class="buyin-card-val">$2,000</div>
-          <div class="buyin-card-tag">40 BB (추천)</div>
-        </div>
-
-        <div class="buyin-card" data-amount="5000">
-          <div class="buyin-chip-icon">
-            <span class="stacked-chip chip-1000"></span>
-          </div>
-          <div class="buyin-card-name">하이롤러</div>
-          <div class="buyin-card-val">$5,000</div>
-          <div class="buyin-card-tag">100 BB (VIP)</div>
-        </div>
-      </div>
-
-      <div class="buyin-summary-box">
-        <span class="buyin-summary-label">입장 칩 구매액:</span>
-        <span class="buyin-summary-amount" id="buyin-selected-amount">$1,000</span>
+      <!-- 플레이어 칩 지갑 잔액 카드 (localStorage 실시간 연동) -->
+      <div class="buyin-wallet-card" id="buyin-wallet-card">
+        <div class="buyin-wallet-label">PLAYER WALLET (보유 자산)</div>
+        <div class="buyin-wallet-balance" id="buyin-wallet-balance">$10,000</div>
+        <div class="buyin-wallet-desc" id="buyin-wallet-desc">이전 게임의 칩 잔액이 안전하게 복원되었습니다</div>
       </div>
 
       <button type="button" id="btn-buyin-confirm" class="buyin-confirm-btn">
-        <span>칩 구매하고 테이블 앉기</span>
+        <span>테이블 앉기 (게임 시작)</span>
       </button>
     </div>
   </div>
