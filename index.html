@@ -28,8 +28,16 @@
   <!-- 메인 모바일 컨테이너 -->
   <div id="game-container" class="game-container">
     
-    <!-- 카지노 포커 테이블 프레임 -->
-    <main class="poker-table">
+    <!-- 모바일 세로 모드 가로 회전 권장 안내 바 -->
+    <div id="rotate-hint" class="rotate-hint" aria-live="polite">
+      <span class="hint-icon">🔄</span>
+      <span class="hint-text">화면을 가로로 돌리면 테이블이 화면에 꽉 찹니다</span>
+    </div>
+
+    <!-- 테이블 유연한 중앙 안착 스테이지 (검은 화면 잘림/쏠림 방지) -->
+    <div class="table-stage" id="table-stage">
+      <!-- 카지노 포커 테이블 프레임 -->
+      <main class="poker-table">
       <!-- 테이블 외곽 골드 림 & 우드 레일 장식 레이어 -->
       <div class="table-rail"></div>
       <div class="table-felt">
@@ -211,6 +219,7 @@
 
       </div>
     </main>
+    </div> <!-- /table-stage -->
 
     <!-- 화면 맨 아래: 베팅 조작 액션 바 -->
     <nav class="betting-action-bar" aria-label="베팅 컨트롤">

@@ -81,6 +81,42 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Table Stage - 모바일/데스크톱 공통 중앙 안착 영역 */
+.table-stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+  min-height: 0;
+}
+
+/* Rotate Hint - 모바일 세로 모드 안내 */
+.rotate-hint {
+  display: none;
+  width: calc(100% - 24px);
+  max-width: 380px;
+  margin: 6px auto 0 auto;
+  padding: 5px 12px;
+  background: rgba(14, 25, 36, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 999px;
+  color: var(--gold-light);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+  z-index: 10;
+  flex-shrink: 0;
+}
+.rotate-hint .hint-icon {
+  margin-right: 4px;
+}
+
 /* ==========================================================================
    Real Horizontal Oval Casino Poker Table (800px ~ 1040px Proportion)
    ========================================================================== */
@@ -2752,7 +2788,7 @@ body::-webkit-scrollbar-thumb:hover {
 
 /* ==========================================================================
    모바일 뷰포트 최적화: 테이블+카드 전체를 폰 화면에 딱 맞게 자동 스케일
-   --table-scale 값은 js/app.js updateTableScale()가 화면 크기에 맞춰 계산
+   Flexbox 기반 중앙 안착으로 상하 쏠림 및 검은 화면 가려짐 완전 방지
    ========================================================================== */
 :root {
   --table-scale: 1;
@@ -2761,25 +2797,54 @@ body::-webkit-scrollbar-thumb:hover {
 @media (max-width: 940px), (max-height: 640px) {
   .game-container {
     overflow: hidden;
-    padding: 0;
-    display: block;
+    padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)) 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  /* 모바일 세로 모드일 때만 회전 안내 토스트 배너 표시 */
+  @media (orientation: portrait) {
+    .rotate-hint {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  /* 테이블 스테이지: 상하/좌우 정중앙 완벽 정렬 */
+  .table-stage {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
+    overflow: visible;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
   }
 
   .poker-table {
-    /* 데스크톱 기준 고정 설계 크기를 유지한 채 transform으로 통째로 축소/확대 */
-    position: absolute;
-    left: 50%;
-    top: max(2px, calc((100dvh - 84px - 540px * var(--table-scale)) / 2));
+    position: relative;
+    left: auto;
+    top: auto;
     width: 900px;
     min-width: 900px;
     max-width: 900px;
     height: 540px;
     min-height: 540px;
     max-height: 540px;
-    margin: 0;
-    transform-origin: top center;
-    transform: translateX(-50%) scale(var(--table-scale));
+    margin: auto;
+    transform-origin: center center;
+    transform: scale(var(--table-scale));
+    flex-shrink: 0;
   }
 
   /* 하단 액션 바: 좁은 폰 화면에서도 5개 버튼이 한 줄에 들어오도록 압축 */
@@ -2787,7 +2852,8 @@ body::-webkit-scrollbar-thumb:hover {
     gap: 4px;
     padding-left: 4px;
     padding-right: 4px;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-top: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
   }
 
   .betting-action-bar .action-btn {

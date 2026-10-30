@@ -2442,23 +2442,39 @@ function setupBuyInEvents() {
 }
 
 /**
- * 모바일 뷰포트 맞춤: 화면 크기에 따라 테이블 전체 스케일(--table-scale)을 자동 계산
- * (데스크톱처럼 충분히 큰 화면에서는 1.0 유지)
+ * 모바일 뷰포트 맞춤: 화면 크기와 회전(가로/세로)에 따라 테이블 전체 스케일(--table-scale)을 자동 계산
+ * 주소창 변화나 가로/세로 전환 시에도 검은 여백 및 잘림이 발생하지 않도록 최적화
  */
 function updateTableScale() {
-  const isMobileFit = window.matchMedia(MOBILE_FIT_QUERY).matches;
   const vw = window.innerWidth || document.documentElement.clientWidth;
   const vh = window.innerHeight || document.documentElement.clientHeight;
+  const isLandscape = vw > vh;
 
-  let scale = 1;
-  if (isMobileFit) {
-    scale = Math.min(
-      (vw - 8) / TABLE_BASE_WIDTH,
-      (vh - ACTION_BAR_RESERVE) / TABLE_BASE_HEIGHT,
-      1
-    );
-    scale = Math.max(0.3, scale);
+  // 데스크톱 (960px 이상 및 660px 이상)
+  if (vw >= 960 && vh >= 660) {
+    currentTableScale = 1;
+    document.documentElement.style.setProperty('--table-scale', '1');
+    return;
   }
+
+  // 상단 회전 안내(세로 모드 약 34px) 및 하단 액션바(약 76px)를 고려한 가용 높이
+  const reservedH = isLandscape ? 74 : 106;
+  const availableW = Math.max(260, vw - 8);
+  const availableH = Math.max(180, vh - reservedH);
+
+  let scale;
+  if (isLandscape) {
+    // 가로 모드: 화면에 최대한 꽉 차게 렌더링
+    scale = Math.min(availableW / TABLE_BASE_WIDTH, availableH / TABLE_BASE_HEIGHT);
+  } else {
+    // 세로 모드: 너비를 화면 가득 채우되 테이블 상하가 화면 밖으로 삐져나가지 않도록 균형 조정
+    const wScale = availableW / TABLE_BASE_WIDTH;
+    const hScale = availableH / TABLE_BASE_HEIGHT;
+    scale = Math.min(wScale, hScale);
+  }
+
+  // 최소 0.32 ~ 최대 1.15
+  scale = Math.max(0.32, Math.min(1.15, scale));
   currentTableScale = scale;
   document.documentElement.style.setProperty('--table-scale', scale.toFixed(4));
 }
@@ -2535,3 +2551,8 @@ window.addEventListener('resize', () => {
 window.addEventListener('orientationchange', () => {
   setTimeout(() => { updateTableScale(); centerTableScroll(); }, 200);
 });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    updateTableScale();
+  });
+}
