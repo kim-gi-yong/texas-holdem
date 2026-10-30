@@ -2472,39 +2472,28 @@ function updateTableScale() {
 
     scale = Math.max(0.35, Math.min(1.2, scale));
 
-    // 미세한 변화(0.008 이하)는 무시하여 모바일 주소창 진동 깜빡거림(Flickering) 완전 차단
-    if (Math.abs(currentTableScale - scale) > 0.008) {
+    // 미세한 변화(0.01 이하)는 무시하여 모바일 주소창 진동 깜빡거림(Flickering) 완전 차단
+    if (Math.abs(currentTableScale - scale) > 0.01) {
       currentTableScale = scale;
       document.documentElement.style.setProperty('--table-scale', scale.toFixed(4));
     }
   });
 }
 
-/**
- * 'TAP TO START' 오버레이: 사용자의 터치/클릭 순간에만 AudioContext를 resume()하고
- * 게임 루프(환전소 -> 첫 카드 분배)를 시작
- */
-function startGameFromTap() {
-  if (isGameStarted) return;
-  isGameStarted = true;
+function initGame() {
+  console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
 
-  const ctx = unlockAudioContext();
-  if (ctx && ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
-  }
-  try {
-    playSound('sound-card');
-  } catch (err) {
-    // 사운드 실패가 게임 시작을 막지 않도록 무시
-  }
+  // 모바일 오디오 컨텍스트 정책: 사용자의 첫 화면 터치/클릭 시 즉시 활성화
+  ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evtName => {
+    document.addEventListener(evtName, () => {
+      unlockAudioContext();
+    }, { once: true, passive: true });
+  });
 
-  const overlay = document.getElementById('start-overlay');
-  if (overlay) {
-    overlay.classList.add('hidden');
-    setTimeout(() => { overlay.style.display = 'none'; }, 320);
-  }
-
-  centerTableScroll();
+  updateTableScale();
+  setupEventListeners();
+  setupBuyInEvents();
+  updateActionButtonsLabel();
 
   if (!gameState.isSeated) {
     showBuyInModal(false);
@@ -2513,42 +2502,8 @@ function startGameFromTap() {
   }
 }
 
-function initGame() {
-  console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
-
-  updateTableScale();
-
-  setupEventListeners();
-  setupBuyInEvents();
-  updateActionButtonsLabel();
-  centerTableScroll();
-
-  const startOverlay = document.getElementById('start-overlay');
-  const startBtn = document.getElementById('btn-tap-start');
-
-  if (startOverlay && startBtn) {
-    // 터치 직후 한 번만 실행 (click + touchend 중복 방지)
-    let handled = false;
-    const onStart = (e) => {
-      if (handled) return;
-      handled = true;
-      if (e && e.cancelable) e.preventDefault();
-      startGameFromTap();
-    };
-    startBtn.addEventListener('click', onStart);
-    startBtn.addEventListener('touchend', onStart, { passive: false });
-    startOverlay.addEventListener('click', onStart);
-  } else {
-    // 오버레이가 없을 때의 안전 폴백
-    startGameFromTap();
-  }
-}
-
 document.addEventListener('DOMContentLoaded', initGame);
 window.addEventListener('resize', updateTableScale);
 window.addEventListener('orientationchange', () => {
   setTimeout(updateTableScale, 150);
 });
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', updateTableScale);
-}

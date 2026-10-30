@@ -2718,110 +2718,24 @@ body::-webkit-scrollbar-thumb:hover {
 
 
 /* ==========================================================================
-   'TAP TO START' 전체 화면 오버레이 (모바일 오디오 자동재생 차단 해결)
-   ========================================================================== */
-.start-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 5000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: radial-gradient(circle at 50% 40%, #12351f 0%, #061109 70%, #020604 100%);
-  cursor: pointer;
-  transition: opacity 0.3s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.start-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.start-overlay-inner {
-  width: 100%;
-  max-width: 460px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  text-align: center;
-}
-
-.start-suits {
-  font-size: 2.2rem;
-  letter-spacing: 10px;
-  color: var(--gold-primary);
-  text-shadow: 0 0 14px rgba(212, 175, 55, 0.6);
-}
-
-.start-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 8vw, 2.6rem);
-  font-weight: 800;
-  letter-spacing: 3px;
-  background: var(--gold-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.start-tap-btn {
-  width: 100%;
-  min-height: 120px;
-  border-radius: 24px;
-  border: 3px solid #bbf7d0;
-  background: linear-gradient(180deg, #22c55e 0%, #16a34a 55%, #14532d 100%);
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  box-shadow: 0 14px 34px rgba(22, 163, 74, 0.6), 0 0 30px rgba(74, 222, 128, 0.5), inset 0 2px 2px rgba(255, 255, 255, 0.5);
-  animation: imBackPulse 1.4s ease-in-out infinite alternate;
-}
-
-.start-tap-btn:active {
-  transform: scale(0.97);
-}
-
-.start-tap-main {
-  font-family: var(--font-display);
-  font-size: 1.9rem;
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-}
-
-.start-tap-sub {
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: #dcfce7;
-}
-
-.start-hint {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.4;
-}
-
-/* ==========================================================================
    모바일 뷰포트 최적화: 테이블+카드 전체를 폰 화면에 딱 맞게 자동 스케일
    Flexbox 기반 중앙 안착으로 상하 쏠림 및 검은 화면 가려짐 완전 방지
+   모바일 GPU 하드웨어 가속 최적화 (깜빡거림 및 블랙아웃 원천 차단)
    ========================================================================== */
 :root {
   --table-scale: 1;
 }
 
 @media (max-width: 940px), (max-height: 640px) {
+  /* 모바일 GPU 크래시 방지: 무거운 백드롭 블러를 깔끔한 고성능 반투명 배경으로 대체 */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   .game-container {
     overflow: hidden;
-    padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)) 0;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -2830,6 +2744,7 @@ body::-webkit-scrollbar-thumb:hover {
     min-height: 100dvh;
     max-height: 100dvh;
     box-sizing: border-box;
+    background: radial-gradient(circle at 50% 30%, #0d2516 0%, #06110a 60%, #020604 100%);
   }
 
   /* 모바일 세로 모드일 때만 회전 안내 토스트 배너 표시 */
@@ -2869,6 +2784,7 @@ body::-webkit-scrollbar-thumb:hover {
     transform-origin: center center;
     transform: scale(var(--table-scale));
     flex-shrink: 0;
+    will-change: transform;
   }
 
   /* 하단 액션 바: 좁은 폰 화면에서도 5개 버튼이 한 줄에 들어오도록 압축 */
@@ -2893,9 +2809,5 @@ body::-webkit-scrollbar-thumb:hover {
 
   .betting-action-bar .btn-subtext {
     font-size: 0.58rem;
-  }
-
-  .start-tap-main {
-    font-size: 1.6rem;
   }
 }
