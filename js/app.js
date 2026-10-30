@@ -36,9 +36,6 @@ let tickToggleState = false;
 const actionTagTimers = [];
 let turnTimerInterval = null;
 let sitOutAutoFoldTimeout = null;
-let timeLeft = TURN_TIME_LIMIT; // 현재 작동 중인 턴 타이머의 남은 시간 변수(초)
-let currentTurnMaxTime = TURN_TIME_LIMIT; // 프로그레스 바 비율 계산용 기준 시간(초)
-let isTimeBankUsed = false; // 한 판(핸드)당 1회 시간 연장 사용 여부 상태 변수
 let turnTimerState = {
   endTime: 0,
   totalMs: 20000,
@@ -657,11 +654,7 @@ function startTurnTimer(player, onTimeoutCallback = null) {
   pillEl.appendChild(trackEl);
   pillEl.appendChild(badgeEl);
 
-  // 실시간 남은 시간 변수(timeLeft) 초기화 (기본 20초)
-  timeLeft = TURN_TIME_LIMIT;
-  currentTurnMaxTime = TURN_TIME_LIMIT;
   const totalMs = TURN_TIME_LIMIT * 1000;
-
   turnTimerState = {
     endTime: Date.now() + totalMs,
     totalMs: totalMs,
@@ -670,16 +663,14 @@ function startTurnTimer(player, onTimeoutCallback = null) {
     seatEl: seatEl,
     isHumanTurn: Boolean(player.isHuman)
   };
+  updateTimeBankButtonDOM();
 
   let lastTickHalfSec = -1;
 
-  // 중요: turnTimerInterval을 먼저 생성한 뒤 updateTimeBankButtonDOM()을 호출하여
-  // 플레이어 턴 시작 시 '시간 연장' 버튼이 즉시 클릭 가능한 활성 상태(disabled = false)가 되도록 보장
   turnTimerInterval = setInterval(() => {
-    timeLeft = Math.max(0, +(timeLeft - 0.1).toFixed(2));
-    const remainingMs = Math.round(timeLeft * 1000);
-    const pct = Math.min(100, Math.max(0, (timeLeft / currentTurnMaxTime) * 100));
-    const remainingSec = Math.ceil(timeLeft);
+    const remainingMs = Math.max(0, turnTimerState.endTime - Date.now());
+    const pct = Math.min(100, (remainingMs / turnTimerState.totalMs) * 100);
+    const remainingSec = Math.ceil(remainingMs / 1000);
 
     if (turnTimerState.barEl) {
       turnTimerState.barEl.style.width = `${pct.toFixed(1)}%`;
@@ -700,79 +691,49 @@ function startTurnTimer(player, onTimeoutCallback = null) {
       seatEl.classList.remove('timer-urgent');
     }
 
-    if (timeLeft <= 0) {
+    if (remainingMs <= 0) {
       stopTurnTimer();
       if (typeof onTimeoutCallback === 'function') {
         onTimeoutCallback();
       }
     }
   }, 100);
-
-  // 플레이어 턴이 시작될 때 '시간 연장' 버튼 활성화 및 클릭 이벤트 연결 보장
-  if (player.isHuman) {
-    const timeBankBtn = document.getElementById('btn-time-bank');
-    if (timeBankBtn) {
-      timeBankBtn.onclick = (e) => {
-        e.preventDefault();
-        unlockAudioContext();
-        extendTurnTimer();
-      };
-    }
-  }
-  updateTimeBankButtonDOM();
 }
 
 /**
  * ⏱ 시간 연장 (+15초) 타임 뱅크 버튼 클릭 핸들러 (한 핸드당 딱 1회 사용 가능)
- * - 클릭 즉시 현재 작동 중인 타이머의 남은 시간 변수(timeLeft)에 +15초를 합산
- * - 빨간색 프로그레스 바(Progress Bar) UI가 늘어난 시간에 맞춰 실시간으로 부드럽게 뒤로 늘어나도록 갱신
- * - 판당 1회 상태 변수(isTimeBankUsed = true) 업데이트 및 버튼 어둡게 비활성화(disabled = true)
  */
 function extendTurnTimer() {
   if (!turnTimerInterval || !turnTimerState.isHumanTurn) return;
-  if (isTimeBankUsed || gameState.timeBankUsedThisHand || gameState.isBettingInProgress || gameState.currentRound === 'showdown') {
+  if (gameState.timeBankUsedThisHand || gameState.isBettingInProgress || gameState.currentRound === 'showdown') {
     return;
   }
 
-  // 1. 판당 1회 제한 상태 변수 업데이트
-  isTimeBankUsed = true;
-  gameState.isTimeBankUsed = true;
   gameState.timeBankUsedThisHand = true;
   gameState.consecutiveTimeouts = 0;
 
-  // 2. 실시간 타이머 남은 시간 변수(timeLeft)에 즉시 +15초 추가
-  timeLeft = +(timeLeft + TIME_BANK_BONUS).toFixed(2);
-  currentTurnMaxTime = Math.max(TURN_TIME_LIMIT, timeLeft);
-
   const bonusMs = TIME_BANK_BONUS * 1000;
   turnTimerState.endTime += bonusMs;
-  turnTimerState.totalMs = currentTurnMaxTime * 1000;
+  turnTimerState.totalMs += bonusMs;
 
   if (turnTimerState.seatEl) {
     turnTimerState.seatEl.classList.remove('timer-urgent');
   }
 
-  // 3. 빨간색 프로그레스 바(Progress Bar) UI가 늘어난 시간에 맞춰 부드럽게 뒤로 늘어나도록 즉시 갱신
-  const pct = Math.min(100, Math.max(0, (timeLeft / currentTurnMaxTime) * 100));
-  const remainingSec = Math.ceil(timeLeft);
+  const remainingMs = Math.max(0, turnTimerState.endTime - Date.now());
+  const pct = Math.min(100, (remainingMs / turnTimerState.totalMs) * 100);
+  const remainingSec = Math.ceil(remainingMs / 1000);
 
   if (turnTimerState.barEl) {
-    turnTimerState.barEl.classList.add('timer-extended-boost');
     turnTimerState.barEl.style.width = `${pct.toFixed(1)}%`;
-    setTimeout(() => {
-      if (turnTimerState.barEl) {
-        turnTimerState.barEl.classList.remove('timer-extended-boost');
-      }
-    }, 340);
   }
   if (turnTimerState.badgeEl) {
     turnTimerState.badgeEl.textContent = `${remainingSec}s`;
   }
 
-  // 4. 해당 판에서는 더 이상 누를 수 없도록 버튼을 어둡게 비활성화(disabled = true)
   playSound('sound-check', 0);
   updateTimeBankButtonDOM();
-  console.log(`⏱ [타임 뱅크 발동] 남은 시간(timeLeft)에 +${TIME_BANK_BONUS}초가 즉시 추가되었습니다! (현재 남은 시간: ${remainingSec}초)`);
+  console.log(`⏱ [타임 뱅크 발동] 현재 턴 남은 시간에 +${TIME_BANK_BONUS}초가 즉시 추가되었습니다! (남은 시간: ${remainingSec}초)`);
 }
 
 /**
@@ -785,7 +746,7 @@ function updateTimeBankButtonDOM() {
   const textEl = timeBankBtn.querySelector('.btn-text');
   const subEl = timeBankBtn.querySelector('.btn-subtext');
 
-  if (isTimeBankUsed || gameState.timeBankUsedThisHand) {
+  if (gameState.timeBankUsedThisHand) {
     timeBankBtn.disabled = true;
     timeBankBtn.classList.add('timebank-used');
     timeBankBtn.style.opacity = '0.45';
@@ -795,7 +756,7 @@ function updateTimeBankButtonDOM() {
   } else {
     timeBankBtn.classList.remove('timebank-used');
     if (textEl) textEl.textContent = '⏱ 시간 연장';
-    if (subEl) subEl.textContent = `(+${TIME_BANK_BONUS}초 / 판당 1회)`;
+    if (subEl) subEl.textContent = `+${TIME_BANK_BONUS}초 (판당 1회)`;
     const canUseNow = Boolean(
       turnTimerInterval &&
       turnTimerState.isHumanTurn &&
@@ -804,7 +765,7 @@ function updateTimeBankButtonDOM() {
       !gameState.isSittingOut
     );
     timeBankBtn.disabled = !canUseNow;
-    timeBankBtn.style.opacity = canUseNow ? '1' : '0.6';
+    timeBankBtn.style.opacity = canUseNow ? '1' : '0.55';
     timeBankBtn.style.pointerEvents = canUseNow ? 'auto' : 'none';
   }
 }
@@ -928,7 +889,6 @@ async function runBotOnlyRemainingStreets() {
     }
 
     // 2. 남은 스트리트(preflop -> flop -> turn -> river)를 순서대로 오픈하며 봇들끼리 베팅 진행
-    const streetOrder = ['preflop', 'flop', 'turn', 'river'];
     while (gameState.currentRound !== 'showdown') {
       gameState.roundBets = {};
       gameState.currentBet = 0;
@@ -1008,15 +968,9 @@ function resetAllGameState() {
     clearTimeout(gameState.autoNextHandTimer);
     gameState.autoNextHandTimer = null;
   }
-  // 새로운 판 시작 시 시간 연장(Time Bank) 상태 변수 초기화 (isTimeBankUsed = false)
-  isTimeBankUsed = false;
-  gameState.isTimeBankUsed = false;
-  gameState.timeBankUsedThisHand = false;
-  timeLeft = TURN_TIME_LIMIT;
-  currentTurnMaxTime = TURN_TIME_LIMIT;
-
   gameState.isBettingInProgress = false;
   gameState.isPlayerAllIn = false;
+  gameState.timeBankUsedThisHand = false;
   gameState.rejoinNextHand = false;
   gameState.currentRound = 'preflop';
   gameState.pot = 0;
@@ -1024,19 +978,7 @@ function resetAllGameState() {
   gameState.roundBets = {};
   gameState.hasBotRaisedThisStreet = false;
   gameState.communityCards = [];
-
-  // 시간 연장 버튼 UI도 즉시 초기 상태로 복구
-  const timeBankBtn = document.getElementById('btn-time-bank');
-  if (timeBankBtn) {
-    timeBankBtn.disabled = false;
-    timeBankBtn.classList.remove('timebank-used');
-    timeBankBtn.style.opacity = '1';
-    timeBankBtn.style.pointerEvents = 'auto';
-    const textEl = timeBankBtn.querySelector('.btn-text');
-    const subEl = timeBankBtn.querySelector('.btn-subtext');
-    if (textEl) textEl.textContent = '⏱ 시간 연장';
-    if (subEl) subEl.textContent = `(+${TIME_BANK_BONUS}초 / 판당 1회)`;
-  }
+  updateTimeBankButtonDOM();
 
   gameState.players.forEach(player => {
     player.hand = [];
@@ -1142,18 +1084,6 @@ function dealHoleCards() {
 
   const humanPlayer = gameState.players.find(p => p.isHuman);
   console.log(`[내 패 확인] ${humanPlayer.name}의 홀 카드: [ ${humanPlayer.hand.map(c => c.toString()).join(', ')} ]`);
-
-  // 새로운 판(새 카드 분배) 시작 시 시간 연장 상태 변수 초기화(isTimeBankUsed = false) 및 버튼 활성화(disabled = false)
-  isTimeBankUsed = false;
-  gameState.isTimeBankUsed = false;
-  gameState.timeBankUsedThisHand = false;
-  const timeBankBtn = document.getElementById('btn-time-bank');
-  if (timeBankBtn) {
-    timeBankBtn.disabled = false;
-    timeBankBtn.classList.remove('timebank-used');
-    timeBankBtn.style.opacity = '1';
-    timeBankBtn.style.pointerEvents = 'auto';
-  }
 
   renderPlayerHand();
   renderBotCards();
