@@ -1733,7 +1733,11 @@ async function runShowdown() {
 
     await delay(750);
     playSound('sound-win');
-    showWinnerModal([winner], { rankInfo: { name: 'Fold Out Win', korean: '기권승' } }, totalPot);
+    showWinnerModal([winner], {
+      rankInfo: { name: 'Fold Out Win', korean: '기권승' },
+      description: '상대방 전원 폴드로 팟 독식!',
+      bestCards: winner.hand || []
+    }, totalPot);
     return;
   }
 
@@ -1797,19 +1801,43 @@ function revealActiveBotCards() {
 function showWinnerModal(winners, winningHand, wonPot) {
   const modalEl = document.getElementById('game-modal');
   const titleEl = document.getElementById('modal-title');
-  const subtitleEl = document.querySelector('.modal-subtitle');
+  const handRankEl = document.getElementById('modal-hand-rank');
+  const handDetailEl = document.getElementById('modal-hand-detail');
+  const bestCardsEl = document.getElementById('modal-best-cards');
   const potValEl = document.getElementById('modal-pot-val');
   const potLabelEl = document.querySelector('.modal-pot-label');
   const nextHandBtn = document.getElementById('next-hand-btn') || document.getElementById('btn-next-hand');
 
   const winnerNames = winners.map(w => w.name).join(', ');
   const winTitle = winners.length > 1 ? `${winnerNames} 공동 승리! 🏆` : `${winnerNames} 승리! 🏆`;
-  const winSubtitle = `족보: ${winningHand.rankInfo.name} (${winningHand.rankInfo.korean})`;
+
+  const koreanRank = winningHand?.rankInfo?.korean || '승리';
+  const englishRank = winningHand?.rankInfo?.name || '';
+  const rankDisplay = englishRank && englishRank !== koreanRank
+    ? `${koreanRank} (${englishRank})`
+    : koreanRank;
+
+  const descDisplay = winningHand?.description || '';
 
   if (titleEl) titleEl.textContent = winTitle;
-  if (subtitleEl) subtitleEl.textContent = winSubtitle;
-  if (potLabelEl) potLabelEl.textContent = 'WINNER POT';
+  if (handRankEl) handRankEl.textContent = rankDisplay;
+  if (handDetailEl) handDetailEl.textContent = descDisplay;
+  if (potLabelEl) potLabelEl.textContent = 'TOTAL WINNER POT';
   if (potValEl) potValEl.textContent = `+$${wonPot.toLocaleString()}`;
+
+  // 승리 조합 5장(또는 홀 카드) 시각화 렌더링
+  if (bestCardsEl) {
+    bestCardsEl.innerHTML = '';
+    const cardsToRender = winningHand?.bestCards || (winners[0]?.hand || []);
+    if (cardsToRender && cardsToRender.length > 0) {
+      cardsToRender.forEach(card => {
+        bestCardsEl.innerHTML += createCardFrontHTML(card);
+      });
+      bestCardsEl.style.display = 'flex';
+    } else {
+      bestCardsEl.style.display = 'none';
+    }
+  }
 
   if (modalEl) {
     modalEl.classList.add('active');

@@ -279,10 +279,17 @@
     <div class="modal-content">
       <div class="modal-icon">🏆</div>
       <h2 id="modal-title" class="modal-title">게임 종료!</h2>
-      <p class="modal-subtitle">승자 판독 엔진</p>
       
+      <!-- 승리 족보(Winning Hand) 대형 가시성 하이라이트 배너 -->
+      <div class="modal-hand-banner">
+        <div class="modal-hand-tag">★ WINNING HAND (승리 족보) ★</div>
+        <div class="modal-hand-rank" id="modal-hand-rank">승리 족보</div>
+        <div class="modal-hand-detail" id="modal-hand-detail">상세 족보 구성 설명</div>
+        <div class="modal-best-cards" id="modal-best-cards"></div>
+      </div>
+
       <div class="modal-pot-box">
-        <span class="modal-pot-label">WINNER POT</span>
+        <span class="modal-pot-label">TOTAL WINNER POT</span>
         <span class="modal-pot-val" id="modal-pot-val">$0</span>
       </div>
 
