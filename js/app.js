@@ -24,85 +24,351 @@ const RANK_VALUES = {
 const SMALL_BLIND = 25;
 const BIG_BLIND = 50;
 const DEFAULT_BET_AMOUNT = 50;
+const TURN_TIME_LIMIT = 20; // 각 턴당 기본 20초 시간 제한
+const TIME_BANK_BONUS = 15; // 시간 연장(Time Bank) 버튼 클릭 시 +15초 추가
 
 // ==========================================================================
-// 2. 사운드 이펙트 시스템 (Audio System & Web Audio Synth Fallback)
+// 2. 사운드 이펙트 시스템 (베팅 금액 비례 묵직한 저주파 '툭, 촥' & 턴 타이머 SFX)
 // ==========================================================================
 let audioContext = null;
+let isAudioUnlocked = false;
+let tickToggleState = false;
+const actionTagTimers = [];
+let turnTimerInterval = null;
+let sitOutAutoFoldTimeout = null;
+let timeLeft = TURN_TIME_LIMIT; // 현재 작동 중인 턴 타이머의 남은 시간 변수(초)
+let currentTurnMaxTime = TURN_TIME_LIMIT; // 프로그레스 바 비율 계산용 기준 시간(초)
+let isTimeBankUsed = false; // 한 판(핸드)당 1회 시간 연장 사용 여부 상태 변수
+let turnTimerState = {
+  endTime: 0,
+  totalMs: 20000,
+  barEl: null,
+  badgeEl: null,
+  seatEl: null,
+  isHumanTurn: false
+};
+
+/**
+ * 브라우저 오토플레이 방지 정책(Autoplay Policy)을 통과하기 위해
+ * 사용자의 첫 버튼 클릭(칩 구매, 첫 베팅 등) 시 AudioContext를 즉시 깨우고 활성화하는 함수
+ */
+function unlockAudioContext() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    if (!audioContext) {
+      audioContext = new AudioContextClass();
+    }
+
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().catch(() => {});
+    }
+
+    if (!isAudioUnlocked && audioContext) {
+      const silentBuffer = audioContext.createBuffer(1, 1, 22050);
+      const source = audioContext.createBufferSource();
+      source.buffer = silentBuffer;
+      source.connect(audioContext.destination);
+      source.start(0);
+      isAudioUnlocked = true;
+    }
+
+    return audioContext;
+  } catch (err) {
+    return null;
+  }
+}
 
 function getAudioContext() {
-  if (!audioContext) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) audioContext = new AudioContextClass();
-  }
-  if (audioContext && audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-  return audioContext;
+  return unlockAudioContext();
 }
 
 /**
- * 사운드 이펙트 재생 함수
- * @param {'sound-bet' | 'sound-card' | 'sound-win'} soundId
+ * 사운드 이펙트 재생 함수 (베팅 금액에 비례해 볼륨과 파형 두께가 동적으로 변화)
+ * @param {'sound-bet' | 'sound-check' | 'sound-fold' | 'sound-allin' | 'sound-card' | 'sound-win' | 'sound-tick'} soundId
+ * @param {number} amount - 베팅/콜/레이즈 금액 (기본값 50)
  */
-function playSound(soundId) {
-  const audioEl = document.getElementById(soundId);
-  if (audioEl && audioEl.src && audioEl.src.length > 5 && !audioEl.src.endsWith('/')) {
-    audioEl.currentTime = 0;
-    audioEl.play().catch(() => playSynthesizedSound(soundId));
-  } else {
-    playSynthesizedSound(soundId);
+function playSound(soundId, amount = 50) {
+  try {
+    unlockAudioContext();
+    const audioEl = document.getElementById(soundId);
+    if (audioEl && audioEl.src && audioEl.src.length > 5 && !audioEl.src.endsWith('/')) {
+      audioEl.currentTime = 0;
+      audioEl.play().catch(() => playSynthesizedSound(soundId, amount));
+    } else {
+      playSynthesizedSound(soundId, amount);
+    }
+  } catch (err) {
+    playSynthesizedSound(soundId, amount);
   }
 }
 
 /**
- * 브라우저 내장 Web Audio API 사운드 합성기
+ * 브라우저 내장 Web Audio API 고품질 카지노 사운드 합성기
+ * - sound-bet: 고주파 '피악' 소리를 완전히 배제하고, 저주파 대역(65Hz~420Hz)의 묵직한 '툭, 촥' 사운드 구현
+ *              베팅 금액(amount)이 커질수록 볼륨(gain)이 커지고 오실레이터 파형이 굵어지며(sine -> triangle/sawtooth) 칩 낙하 밀도가 증가
+ * - sound-check: 테이블을 가볍게 두드리는 묵직한 저음 '툭-툭' 노크 사운드
+ * - sound-tick: 남은 시간 3초 이하일 때 울리는 긴장감 넘치는 '째깍째깍' 시계 초침 사운드
  */
-function playSynthesizedSound(type) {
+function playSynthesizedSound(type, amount = 50) {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
 
     if (type === 'sound-bet') {
-      [0, 0.05].forEach((d, idx) => {
+      // 베팅 금액($25 ~ $2,500+)을 0.0 ~ 1.0 강도(intensity)로 로그 정규화
+      const safeAmt = Math.max(25, Number(amount) || 50);
+      const intensity = Math.min(1, Math.max(0, Math.log10(safeAmt / 25) / Math.log10(2500 / 25)));
+
+      // 금액에 비례하는 동적 볼륨(0.24 -> 0.62) 및 파형 두께(칩 낙하 횟수 2회 -> 5회)
+      const masterGainVal = 0.24 + intensity * 0.38;
+      const dropCount = 2 + Math.floor(intensity * 3); // 소액은 '툭-촥'(2타), 고액 레이즈는 묵직한 다중 '쿵-촥-촥'(5타)
+      const baseFreq = 135 - intensity * 38; // 금액이 클수록 주파수가 더 낮고 묵직해짐 (135Hz -> 97Hz)
+
+      for (let i = 0; i < dropCount; i++) {
+        const startOffset = i * (0.045 - intensity * 0.008);
+        const t0 = now + startOffset;
+        const dropDur = 0.12 + intensity * 0.06;
+
+        // 1) 묵직한 '툭' (저주파 펠트 타격음 - 금액이 클수록 파형이 굵어짐)
+        const thudOsc = ctx.createOscillator();
+        const thudGain = ctx.createGain();
+        thudOsc.type = intensity >= 0.45 ? 'triangle' : 'sine';
+        const startFreq = Math.max(65, baseFreq - i * 8);
+        thudOsc.frequency.setValueAtTime(startFreq, t0);
+        thudOsc.frequency.exponentialRampToValueAtTime(34, t0 + dropDur);
+
+        const layerVol = masterGainVal * (i === 0 ? 1.0 : 0.78);
+        thudGain.gain.setValueAtTime(0.001, t0);
+        thudGain.gain.linearRampToValueAtTime(layerVol, t0 + 0.006);
+        thudGain.gain.exponentialRampToValueAtTime(0.001, t0 + dropDur);
+
+        thudOsc.connect(thudGain);
+        thudGain.connect(ctx.destination);
+        thudOsc.start(t0);
+        thudOsc.stop(t0 + dropDur + 0.01);
+
+        // 고액 베팅($200 이상)일 때 파형을 더 굵고 풍성하게 만드는 서브 하모닉 레이어 추가
+        if (intensity > 0.25) {
+          const fatOsc = ctx.createOscillator();
+          const fatFilter = ctx.createBiquadFilter();
+          const fatGain = ctx.createGain();
+          fatOsc.type = 'sawtooth';
+          fatOsc.frequency.setValueAtTime(startFreq * 0.75, t0);
+          fatOsc.frequency.exponentialRampToValueAtTime(28, t0 + dropDur);
+
+          fatFilter.type = 'lowpass';
+          fatFilter.frequency.setValueAtTime(180 + intensity * 140, t0);
+
+          fatGain.gain.setValueAtTime(0.001, t0);
+          fatGain.gain.linearRampToValueAtTime(layerVol * (0.35 + intensity * 0.45), t0 + 0.008);
+          fatGain.gain.exponentialRampToValueAtTime(0.001, t0 + dropDur);
+
+          fatOsc.connect(fatFilter);
+          fatFilter.connect(fatGain);
+          fatGain.connect(ctx.destination);
+          fatOsc.start(t0);
+          fatOsc.stop(t0 + dropDur + 0.01);
+        }
+
+        // 2) 묵직한 '촥' (저중역 클레이 칩 마찰음 - 고주파 완전 제거, 240Hz~480Hz 로우패스/밴드패스)
+        const chwakDur = 0.095 + intensity * 0.045;
+        const bufLen = Math.floor(ctx.sampleRate * chwakDur);
+        const noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let s = 0; s < bufLen; s++) {
+          const env = Math.pow(1 - s / bufLen, 1.4);
+          data[s] = (Math.random() * 2 - 1) * env;
+        }
+
+        const noiseSrc = ctx.createBufferSource();
+        noiseSrc.buffer = noiseBuf;
+
+        const chipFilter = ctx.createBiquadFilter();
+        chipFilter.type = 'bandpass';
+        chipFilter.Q.setValueAtTime(1.4 - intensity * 0.5, t0); // 금액이 클수록 대역폭이 넓고 굵어짐
+        chipFilter.frequency.setValueAtTime(380 - intensity * 90, t0);
+        chipFilter.frequency.exponentialRampToValueAtTime(180, t0 + chwakDur);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.001, t0);
+        noiseGain.gain.linearRampToValueAtTime(layerVol * 0.85, t0 + 0.01);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t0 + chwakDur);
+
+        noiseSrc.connect(chipFilter);
+        chipFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseSrc.start(t0);
+        noiseSrc.stop(t0 + chwakDur + 0.01);
+      }
+    } else if (type === 'sound-check') {
+      // 체크(CHECK): 테이블 우드/펠트를 가볍게 두 번 두드리는 낮고 묵직한 '툭-툭' 노크음
+      [0, 0.075].forEach((offset, idx) => {
+        const t0 = now + offset;
         const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(idx === 0 ? 1900 : 2500, now + d);
-        gain.gain.setValueAtTime(0.18, now + d);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + d + 0.12);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + d);
-        osc.stop(now + d + 0.12);
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(idx === 0 ? 118 : 104, t0);
+        osc.frequency.exponentialRampToValueAtTime(38, t0 + 0.07);
+        g.gain.setValueAtTime(0.001, t0);
+        g.gain.linearRampToValueAtTime(0.22, t0 + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.075);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.08);
+      });
+    } else if (type === 'sound-tick') {
+      // 3초 이하 임박 타이머: 긴장감 있는 '째깍(Tick-Tock)' 시계 초침 사운드
+      tickToggleState = !tickToggleState;
+      const tickFreq = tickToggleState ? 620 : 480;
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(tickFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.045);
+
+      filter.type = 'bandpass';
+      filter.Q.setValueAtTime(3.0, now);
+      filter.frequency.setValueAtTime(tickFreq, now);
+
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.linearRampToValueAtTime(0.28, now + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.048);
+
+      osc.connect(filter);
+      filter.connect(g);
+      g.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.052);
+    } else if (type === 'sound-fold') {
+      // 폴드(FOLD): 카드가 '슥~' 하고 펠트 테이블을 스치는 가벼운 마찰 사운드
+      const duration = 0.22;
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const bandpass = ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.Q.setValueAtTime(2.2, now);
+      bandpass.frequency.setValueAtTime(850, now);
+      bandpass.frequency.exponentialRampToValueAtTime(260, now + duration);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, now);
+      noiseGain.gain.linearRampToValueAtTime(0.28, now + 0.03);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      whiteNoise.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + duration);
+
+      const swishOsc = ctx.createOscillator();
+      const swishGain = ctx.createGain();
+      swishOsc.type = 'sine';
+      swishOsc.frequency.setValueAtTime(260, now);
+      swishOsc.frequency.exponentialRampToValueAtTime(85, now + 0.18);
+      swishGain.gain.setValueAtTime(0.14, now);
+      swishGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      swishOsc.connect(swishGain);
+      swishGain.connect(ctx.destination);
+      swishOsc.start(now);
+      swishOsc.stop(now + 0.19);
+    } else if (type === 'sound-allin') {
+      // 올인(ALL-IN): 묵직하게 '쾅!' 터지는 임팩트 + 웅장한 카지노 알람/브라스 사운드
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = 'triangle';
+      subOsc.frequency.setValueAtTime(140, now);
+      subOsc.frequency.exponentialRampToValueAtTime(26, now + 0.55);
+      subGain.gain.setValueAtTime(0.52, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
+      subOsc.connect(subGain);
+      subGain.connect(ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 0.60);
+
+      const boomDur = 0.35;
+      const boomBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * boomDur), ctx.sampleRate);
+      const boomData = boomBuf.getChannelData(0);
+      for (let i = 0; i < boomData.length; i++) {
+        boomData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / boomData.length, 1.5);
+      }
+      const boomNoise = ctx.createBufferSource();
+      boomNoise.buffer = boomBuf;
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.setValueAtTime(420, now);
+      lowpass.frequency.exponentialRampToValueAtTime(65, now + boomDur);
+      const boomNoiseGain = ctx.createGain();
+      boomNoiseGain.gain.setValueAtTime(0.42, now);
+      boomNoiseGain.gain.exponentialRampToValueAtTime(0.001, now + boomDur);
+      boomNoise.connect(lowpass);
+      lowpass.connect(boomNoiseGain);
+      boomNoiseGain.connect(ctx.destination);
+      boomNoise.start(now);
+      boomNoise.stop(now + boomDur);
+
+      const alarmPulses = [
+        { start: 0.04, f1: 220, f2: 329.63, dur: 0.24 },
+        { start: 0.28, f1: 261.63, f2: 392.00, dur: 0.44 }
+      ];
+      alarmPulses.forEach(({ start, f1, f2, dur }) => {
+        [f1, f1 * 1.5, f2].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = idx === 1 ? 'sawtooth' : 'triangle';
+          const t0 = now + start;
+          osc.frequency.setValueAtTime(freq * 0.92, t0);
+          osc.frequency.exponentialRampToValueAtTime(freq, t0 + 0.07);
+          g.gain.setValueAtTime(0.001, t0);
+          g.gain.linearRampToValueAtTime(idx === 1 ? 0.12 : 0.18, t0 + 0.025);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        });
       });
     } else if (type === 'sound-card') {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(480, now);
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.1);
-      gain.gain.setValueAtTime(0.14, now);
-      gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+      osc.frequency.setValueAtTime(360, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.09);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.09);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.1);
+      osc.stop(now + 0.095);
     } else if (type === 'sound-win') {
-      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const notes = [261.63, 329.63, 392.00, 523.25];
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
         const start = now + idx * 0.11;
         osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.22, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.38);
+        gain.gain.setValueAtTime(0.24, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.42);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(start);
-        osc.stop(start + 0.38);
+        osc.stop(start + 0.42);
       });
     }
   } catch (err) {
@@ -137,7 +403,12 @@ const gameState = {
   selectedBuyIn: 1000, // 환전소(Buy-in) 선택 금액
   isSeated: false,     // 바이인 완료 후 착석 여부
   isBettingInProgress: false,
-  isPlayerAllIn: false
+  isPlayerAllIn: false,
+  timeBankUsedThisHand: false, // 한 핸드(판)당 1회 시간 연장(+15초) 사용 여부
+  consecutiveTimeouts: 0,      // 연속 타임아웃 횟수 (2회 연속 시 자리 비움 전환)
+  isSittingOut: false,         // 자리 비움(Sit-Out) 모드 여부
+  rejoinNextHand: false,       // '다시 시작하기' 클릭 후 다음 판 즉시 복귀 예약 여부
+  autoNextHandTimer: null      // 자리 비움 중 봇들끼리 다음 판 자동 진행 타이머
 };
 
 // ==========================================================================
@@ -176,43 +447,61 @@ function shuffleDeck(deck) {
 // ==========================================================================
 
 /**
- * 소지금에 맞춰 입체적인 칩 탑(3D Stack) HTML 생성
- * $10, $50, $100, $500, $1000 단위별 색상 분기
+ * 소지금에 맞춰 산더미처럼 수북하게 쌓인 3D 카지노 칩 탑(Stack) HTML 생성
+ * 같은 금액이라도 고액권 1~2개로 끝나지 않고, 여러 단위($1000, $500, $100, $50, $10)로 잘게 쪼개어
+ * 웅장하고 풍성한 다중 칩 타워(최대 4~5컬럼, 컬럼당 최대 8~9개 적층)를 형성하도록 고도화
  */
 function generateChipStackHTML(amount) {
   if (amount <= 0) return '';
 
-  const denoms = [
-    { value: 1000, cls: 'chip-1000' },
-    { value: 500, cls: 'chip-500' },
-    { value: 100, cls: 'chip-100' },
-    { value: 50, cls: 'chip-50' },
-    { value: 10, cls: 'chip-10' }
-  ];
-
   const chipList = [];
   let rem = amount;
 
-  for (const d of denoms) {
-    if (rem >= d.value) {
-      const count = Math.min(5, Math.floor(rem / d.value));
-      for (let i = 0; i < count; i++) {
-        chipList.push(d.cls);
-      }
-      rem -= count * d.value;
-    }
+  // 1) 고액($1000+)은 일부만 $1000/$500 칩으로 배정하고 나머지는 $100, $50, $10으로 잘게 쪼개어 칩 개수를 대폭 증폭
+  if (rem >= 1500) {
+    const c1000 = Math.min(4, Math.floor((rem * 0.35) / 1000));
+    for (let i = 0; i < c1000; i++) chipList.push('chip-1000');
+    rem -= c1000 * 1000;
   }
 
-  if (chipList.length === 0 && amount > 0) {
-    chipList.push('chip-50');
+  if (rem >= 600) {
+    const c500 = Math.min(5, Math.floor((rem * 0.4) / 500));
+    for (let i = 0; i < c500; i++) chipList.push('chip-500');
+    rem -= c500 * 500;
   }
 
-  // 1열당 4개씩 최대 3개 컬럼으로 칩 탑 분할
+  if (rem >= 150) {
+    const c100 = Math.min(10, Math.floor((rem * 0.55) / 100));
+    for (let i = 0; i < c100; i++) chipList.push('chip-100');
+    rem -= c100 * 100;
+  }
+
+  if (rem >= 50) {
+    const c50 = Math.min(10, Math.floor((rem * 0.65) / 50));
+    for (let i = 0; i < c50; i++) chipList.push('chip-50');
+    rem -= c50 * 50;
+  }
+
+  if (rem > 0) {
+    const c10 = Math.min(10, Math.max(2, Math.ceil(rem / 10)));
+    for (let i = 0; i < c10; i++) chipList.push('chip-10');
+  }
+
+  // 기본 $1,000 바이인 기준 최소 22개 이상의 칩이 수북하게 쌓이도록 밀도 보강
+  const targetMinChips = amount >= 2000 ? 30 : amount >= 1000 ? 24 : amount >= 300 ? 16 : Math.max(5, Math.ceil(amount / 15));
+  const fillerClasses = ['chip-100', 'chip-50', 'chip-10'];
+  let fillerIdx = 0;
+  while (chipList.length < targetMinChips) {
+    chipList.push(fillerClasses[fillerIdx % fillerClasses.length]);
+    fillerIdx++;
+  }
+
+  // 1열당 최대 8개씩 최대 4개 컬럼으로 산더미처럼 분할
   const columns = [];
-  const colSize = 4;
+  const colSize = 8;
   for (let i = 0; i < chipList.length; i += colSize) {
     columns.push(chipList.slice(i, i + colSize));
-    if (columns.length >= 3) break;
+    if (columns.length >= 4) break;
   }
 
   let html = '<div class="chip-stack-container">';
@@ -229,14 +518,9 @@ function generateChipStackHTML(amount) {
 }
 
 /**
- * 칩이 부드럽게 날아가는 이동 애니메이션 함수
- * @param {HTMLElement} fromEl - 출발 엘리먼트
- * @param {HTMLElement} toEl - 도착 엘리먼트
- * @param {number} count - 날아가는 칩 개수
- * @param {string} chipClass - 칩 색상 클래스
- * @param {Function} callback - 완료 콜백
+ * 칩이 묵직하고 풍성하게 날아가는 이동 애니메이션 함수 (1.5x 크기 반영)
  */
-function animateFlyingChips(fromEl, toEl, count = 3, chipClass = 'chip-50', callback = null) {
+function animateFlyingChips(fromEl, toEl, count = 5, chipClass = 'chip-50', callback = null) {
   if (!fromEl || !toEl) {
     if (callback) callback();
     return;
@@ -256,33 +540,34 @@ function animateFlyingChips(fromEl, toEl, count = 3, chipClass = 'chip-50', call
   const endY = toRect.top + toRect.height / 2;
 
   const container = document.body;
+  const chipCount = Math.max(4, count);
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < chipCount; i++) {
     const chip = document.createElement('div');
     chip.className = `flying-chip ${chipClass}`;
 
-    const randSpreadX = (Math.random() - 0.5) * 16;
-    const randSpreadY = (Math.random() - 0.5) * 12;
+    const randSpreadX = (Math.random() - 0.5) * 22;
+    const randSpreadY = (Math.random() - 0.5) * 16;
 
-    chip.style.left = `${startX + randSpreadX - 11}px`;
-    chip.style.top = `${startY + randSpreadY - 7}px`;
+    chip.style.left = `${startX + randSpreadX - 16}px`;
+    chip.style.top = `${startY + randSpreadY - 10}px`;
 
     container.appendChild(chip);
 
-    const delayMs = i * 45;
-    const duration = 440;
+    const delayMs = i * 38;
+    const duration = 430;
 
     setTimeout(() => {
       chip.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity ${duration}ms ease`;
-      const targetDX = (endX - startX) + (Math.random() - 0.5) * 16;
-      const targetDY = (endY - startY) + (Math.random() - 0.5) * 10;
-      const randRot = (Math.random() - 0.5) * 200;
-      chip.style.transform = `translate(${targetDX}px, ${targetDY}px) scale(0.9) rotate(${randRot}deg)`;
+      const targetDX = (endX - startX) + (Math.random() - 0.5) * 20;
+      const targetDY = (endY - startY) + (Math.random() - 0.5) * 14;
+      const randRot = (Math.random() - 0.5) * 180;
+      chip.style.transform = `translate(${targetDX}px, ${targetDY}px) scale(0.95) rotate(${randRot}deg)`;
     }, delayMs);
 
     setTimeout(() => {
       chip.remove();
-      if (i === count - 1 && callback) {
+      if (i === chipCount - 1 && callback) {
         callback();
       }
     }, delayMs + duration + 50);
@@ -323,19 +608,435 @@ function renderBlindBadges() {
 }
 
 /**
+ * 실전 20초 턴 타이머 & 타임 뱅크(+15초) & 자리 비움(Sit-Out) 제어 시스템
+ * - 현재 턴인 플레이어 프로필 하단에 빨간색 프로그레스 바(Progress Bar)와 남은 초(s) 배지를 표시
+ * - 플레이어 턴일 때 '⏱ 시간 연장 (+15초)' 버튼을 판당 딱 1회 눌러 남은 시간을 즉시 +15초 연장 가능
+ * - 남은 시간이 3초 이하가 되면 테두리 적색 점멸 및 '째깍째깍' 시계 소리(sound-tick) 재생
+ * - 2번 연속 타임아웃 발생 시 자리 비움(Sit-Out) 모드로 전환되어 0.1초 만에 즉시 자동 폴드 처리 및 봇들끼리 무한 진행
+ */
+function stopTurnTimer() {
+  if (turnTimerInterval) {
+    clearInterval(turnTimerInterval);
+    turnTimerInterval = null;
+  }
+  if (sitOutAutoFoldTimeout) {
+    clearTimeout(sitOutAutoFoldTimeout);
+    sitOutAutoFoldTimeout = null;
+  }
+  turnTimerState.barEl = null;
+  turnTimerState.badgeEl = null;
+  turnTimerState.seatEl = null;
+  turnTimerState.isHumanTurn = false;
+  document.querySelectorAll('.seat').forEach(seat => {
+    seat.classList.remove('active-turn', 'timer-urgent');
+  });
+  document.querySelectorAll('.turn-timer-track, .turn-timer-badge').forEach(el => el.remove());
+  updateTimeBankButtonDOM();
+}
+
+function startTurnTimer(player, onTimeoutCallback = null) {
+  stopTurnTimer();
+  if (!player || player.isFolded || gameState.currentRound === 'showdown') return;
+
+  const seatEl = document.getElementById(player.seatId);
+  if (!seatEl) return;
+
+  const pillEl = seatEl.querySelector('.player-info-pill') || seatEl;
+  seatEl.classList.add('active-turn');
+
+  const trackEl = document.createElement('div');
+  trackEl.className = 'turn-timer-track';
+  const barEl = document.createElement('div');
+  barEl.className = 'turn-timer-bar';
+  trackEl.appendChild(barEl);
+
+  const badgeEl = document.createElement('span');
+  badgeEl.className = 'turn-timer-badge';
+  badgeEl.textContent = `${TURN_TIME_LIMIT}s`;
+
+  pillEl.appendChild(trackEl);
+  pillEl.appendChild(badgeEl);
+
+  // 실시간 남은 시간 변수(timeLeft) 초기화 (기본 20초)
+  timeLeft = TURN_TIME_LIMIT;
+  currentTurnMaxTime = TURN_TIME_LIMIT;
+  const totalMs = TURN_TIME_LIMIT * 1000;
+
+  turnTimerState = {
+    endTime: Date.now() + totalMs,
+    totalMs: totalMs,
+    barEl: barEl,
+    badgeEl: badgeEl,
+    seatEl: seatEl,
+    isHumanTurn: Boolean(player.isHuman)
+  };
+
+  let lastTickHalfSec = -1;
+
+  // 중요: turnTimerInterval을 먼저 생성한 뒤 updateTimeBankButtonDOM()을 호출하여
+  // 플레이어 턴 시작 시 '시간 연장' 버튼이 즉시 클릭 가능한 활성 상태(disabled = false)가 되도록 보장
+  turnTimerInterval = setInterval(() => {
+    timeLeft = Math.max(0, +(timeLeft - 0.1).toFixed(2));
+    const remainingMs = Math.round(timeLeft * 1000);
+    const pct = Math.min(100, Math.max(0, (timeLeft / currentTurnMaxTime) * 100));
+    const remainingSec = Math.ceil(timeLeft);
+
+    if (turnTimerState.barEl) {
+      turnTimerState.barEl.style.width = `${pct.toFixed(1)}%`;
+    }
+    if (turnTimerState.badgeEl) {
+      turnTimerState.badgeEl.textContent = `${remainingSec}s`;
+    }
+
+    // 남은 시간이 3초 이하일 때 긴장감 있는 '째깍째깍' 사운드 & 적색 긴급 점멸
+    if (remainingMs <= 3000 && remainingMs > 0) {
+      seatEl.classList.add('timer-urgent');
+      const halfSecBucket = Math.floor(remainingMs / 500);
+      if (halfSecBucket !== lastTickHalfSec) {
+        lastTickHalfSec = halfSecBucket;
+        playSound('sound-tick');
+      }
+    } else {
+      seatEl.classList.remove('timer-urgent');
+    }
+
+    if (timeLeft <= 0) {
+      stopTurnTimer();
+      if (typeof onTimeoutCallback === 'function') {
+        onTimeoutCallback();
+      }
+    }
+  }, 100);
+
+  // 플레이어 턴이 시작될 때 '시간 연장' 버튼 활성화 및 클릭 이벤트 연결 보장
+  if (player.isHuman) {
+    const timeBankBtn = document.getElementById('btn-time-bank');
+    if (timeBankBtn) {
+      timeBankBtn.onclick = (e) => {
+        e.preventDefault();
+        unlockAudioContext();
+        extendTurnTimer();
+      };
+    }
+  }
+  updateTimeBankButtonDOM();
+}
+
+/**
+ * ⏱ 시간 연장 (+15초) 타임 뱅크 버튼 클릭 핸들러 (한 핸드당 딱 1회 사용 가능)
+ * - 클릭 즉시 현재 작동 중인 타이머의 남은 시간 변수(timeLeft)에 +15초를 합산
+ * - 빨간색 프로그레스 바(Progress Bar) UI가 늘어난 시간에 맞춰 실시간으로 부드럽게 뒤로 늘어나도록 갱신
+ * - 판당 1회 상태 변수(isTimeBankUsed = true) 업데이트 및 버튼 어둡게 비활성화(disabled = true)
+ */
+function extendTurnTimer() {
+  if (!turnTimerInterval || !turnTimerState.isHumanTurn) return;
+  if (isTimeBankUsed || gameState.timeBankUsedThisHand || gameState.isBettingInProgress || gameState.currentRound === 'showdown') {
+    return;
+  }
+
+  // 1. 판당 1회 제한 상태 변수 업데이트
+  isTimeBankUsed = true;
+  gameState.isTimeBankUsed = true;
+  gameState.timeBankUsedThisHand = true;
+  gameState.consecutiveTimeouts = 0;
+
+  // 2. 실시간 타이머 남은 시간 변수(timeLeft)에 즉시 +15초 추가
+  timeLeft = +(timeLeft + TIME_BANK_BONUS).toFixed(2);
+  currentTurnMaxTime = Math.max(TURN_TIME_LIMIT, timeLeft);
+
+  const bonusMs = TIME_BANK_BONUS * 1000;
+  turnTimerState.endTime += bonusMs;
+  turnTimerState.totalMs = currentTurnMaxTime * 1000;
+
+  if (turnTimerState.seatEl) {
+    turnTimerState.seatEl.classList.remove('timer-urgent');
+  }
+
+  // 3. 빨간색 프로그레스 바(Progress Bar) UI가 늘어난 시간에 맞춰 부드럽게 뒤로 늘어나도록 즉시 갱신
+  const pct = Math.min(100, Math.max(0, (timeLeft / currentTurnMaxTime) * 100));
+  const remainingSec = Math.ceil(timeLeft);
+
+  if (turnTimerState.barEl) {
+    turnTimerState.barEl.classList.add('timer-extended-boost');
+    turnTimerState.barEl.style.width = `${pct.toFixed(1)}%`;
+    setTimeout(() => {
+      if (turnTimerState.barEl) {
+        turnTimerState.barEl.classList.remove('timer-extended-boost');
+      }
+    }, 340);
+  }
+  if (turnTimerState.badgeEl) {
+    turnTimerState.badgeEl.textContent = `${remainingSec}s`;
+  }
+
+  // 4. 해당 판에서는 더 이상 누를 수 없도록 버튼을 어둡게 비활성화(disabled = true)
+  playSound('sound-check', 0);
+  updateTimeBankButtonDOM();
+  console.log(`⏱ [타임 뱅크 발동] 남은 시간(timeLeft)에 +${TIME_BANK_BONUS}초가 즉시 추가되었습니다! (현재 남은 시간: ${remainingSec}초)`);
+}
+
+/**
+ * 타임 뱅크 버튼의 텍스트 및 활성/비활성 UI 상태 동기화
+ */
+function updateTimeBankButtonDOM() {
+  const timeBankBtn = document.getElementById('btn-time-bank');
+  if (!timeBankBtn) return;
+
+  const textEl = timeBankBtn.querySelector('.btn-text');
+  const subEl = timeBankBtn.querySelector('.btn-subtext');
+
+  if (isTimeBankUsed || gameState.timeBankUsedThisHand) {
+    timeBankBtn.disabled = true;
+    timeBankBtn.classList.add('timebank-used');
+    timeBankBtn.style.opacity = '0.45';
+    timeBankBtn.style.pointerEvents = 'none';
+    if (textEl) textEl.textContent = '⏱ 연장 사용됨';
+    if (subEl) subEl.textContent = '이번 핸드 소진 (판당 1회)';
+  } else {
+    timeBankBtn.classList.remove('timebank-used');
+    if (textEl) textEl.textContent = '⏱ 시간 연장';
+    if (subEl) subEl.textContent = `(+${TIME_BANK_BONUS}초 / 판당 1회)`;
+    const canUseNow = Boolean(
+      turnTimerInterval &&
+      turnTimerState.isHumanTurn &&
+      !gameState.isBettingInProgress &&
+      gameState.currentRound !== 'showdown' &&
+      !gameState.isSittingOut
+    );
+    timeBankBtn.disabled = !canUseNow;
+    timeBankBtn.style.opacity = canUseNow ? '1' : '0.6';
+    timeBankBtn.style.pointerEvents = canUseNow ? 'auto' : 'none';
+  }
+}
+
+/**
+ * 2회 연속 타임아웃 발생 시 자리 비움(Sit-Out) 모드 진입 및 중앙 대형 복귀 팝업 표시
+ */
+function enterSitOutMode() {
+  if (gameState.isSittingOut) return;
+  gameState.isSittingOut = true;
+  gameState.rejoinNextHand = false;
+
+  const sitoutOverlay = document.getElementById('sitout-overlay');
+  if (sitoutOverlay) {
+    sitoutOverlay.classList.add('active');
+    sitoutOverlay.style.display = 'flex';
+  }
+  console.log('💤 [자리 비움(Sit-Out) 전환] 2회 연속 타임아웃이 발생하여 자리 비움 모드로 전환되었습니다. 봇들끼리 막힘없이 게임을 속행합니다.');
+}
+
+/**
+ * '▶ 다시 시작하기 (게임 참여)' 버튼 클릭 시 자리 비움 해제 및 다음 판부터 즉시 정상 참여
+ */
+function handleImBackClick() {
+  unlockAudioContext();
+  playSound('sound-check', 0);
+
+  gameState.isSittingOut = false;
+  gameState.consecutiveTimeouts = 0;
+  gameState.rejoinNextHand = true;
+
+  const sitoutOverlay = document.getElementById('sitout-overlay');
+  if (sitoutOverlay) {
+    sitoutOverlay.classList.remove('active');
+    sitoutOverlay.style.display = 'none';
+  }
+
+  console.log('▶ [게임 복귀 완료] 자리 비움(Sit-Out) 모드가 해제되었습니다! 다음 판(Next Hand)부터 즉시 카드를 받고 베팅에 참여합니다.');
+
+  // 현재 쇼다운 정산 모달이 떠 있는 상태라면 기다리지 않고 즉시 새 판을 시작
+  if (gameState.currentRound === 'showdown' && !gameState.isBettingInProgress) {
+    if (gameState.autoNextHandTimer) {
+      clearTimeout(gameState.autoNextHandTimer);
+      gameState.autoNextHandTimer = null;
+    }
+    hideGameModal();
+    const human = gameState.players.find(p => p.isHuman);
+    if (human && human.chips < BIG_BLIND) {
+      showBuyInModal(true);
+    } else {
+      startNextHand();
+    }
+  }
+}
+
+/**
+ * 내 턴(PLAYER 1) 20초 타이머 시작 및 시간 초과 시 Auto-Check / Auto-Fold + 연속 2회 시 자리 비움 처리
+ */
+function startHumanTurnTimer() {
+  const human = gameState.players.find(p => p.isHuman);
+  if (!human || human.isFolded || gameState.currentRound === 'showdown' || !gameState.isSeated) return;
+
+  // 자리 비움(Sit-Out) 상태일 때는 20초 타이머를 돌리지 않고 0.1초(100ms) 만에 즉시 자동 폴드 처리!
+  if (gameState.isSittingOut) {
+    disableActionButtons(true);
+    if (sitOutAutoFoldTimeout) clearTimeout(sitOutAutoFoldTimeout);
+    sitOutAutoFoldTimeout = setTimeout(() => {
+      sitOutAutoFoldTimeout = null;
+      if (gameState.currentRound !== 'showdown' && !human.isFolded) {
+        console.log('⚡ [자리 비움(Sit-Out) 자동 폴드] 0.1초 만에 즉시 자동 폴드 처리되어 봇들끼리 게임을 진행합니다.');
+        executeHumanFold(true, true);
+      }
+    }, 100);
+    return;
+  }
+
+  startTurnTimer(human, () => {
+    if (gameState.isBettingInProgress || gameState.currentRound === 'showdown') return;
+
+    const playerSoFar = gameState.roundBets[human.id] || 0;
+    const needed = Math.max(0, gameState.currentBet - playerSoFar);
+
+    closeRaisePanel();
+
+    // 연속 타임아웃 횟수 증가 및 2회 연속 시 자리 비움(Sit-Out) 모드 전환
+    gameState.consecutiveTimeouts += 1;
+    console.log(`⏰ [${TURN_TIME_LIMIT}초 타임아웃 발생] 연속 타임아웃 횟수: ${gameState.consecutiveTimeouts}회`);
+
+    if (gameState.consecutiveTimeouts >= 2) {
+      enterSitOutMode();
+    }
+
+    if (needed === 0) {
+      console.log(`⏰ [${TURN_TIME_LIMIT}초 시간 초과] 추가 베팅 금액이 $0이므로 자동 체크(Auto-Check)를 수행합니다.`);
+      handlePlayerBet(0, false, 'call', true);
+    } else {
+      console.log(`⏰ [${TURN_TIME_LIMIT}초 시간 초과] 콜 금액($${needed}) 지불 시간이 만료되어 자동 폴드(Auto-Fold) 처리됩니다.`);
+      executeHumanFold(true, false);
+    }
+  });
+}
+
+/**
+ * 플레이어가 폴드(수동/타임아웃/자리비움)한 뒤 남은 봇들끼리 현재 라운드 및 남은 스트리트(Flop -> Turn -> River -> Showdown)를 끝까지 진행
+ */
+async function runBotOnlyRemainingStreets() {
+  gameState.isBettingInProgress = true;
+  disableActionButtons(true);
+
+  try {
+    // 1. 현재 스트리트에서 아직 행동하지 않은 봇들의 베팅 진행
+    await runAIBotBettingLoop(gameState.currentBet, false);
+    await delay(280);
+
+    let activePlayers = gameState.players.filter(p => !p.isFolded);
+    if (activePlayers.length <= 1) {
+      gameState.currentRound = 'showdown';
+      gameState.isBettingInProgress = false;
+      await runShowdown();
+      return;
+    }
+
+    // 2. 남은 스트리트(preflop -> flop -> turn -> river)를 순서대로 오픈하며 봇들끼리 베팅 진행
+    const streetOrder = ['preflop', 'flop', 'turn', 'river'];
+    while (gameState.currentRound !== 'showdown') {
+      gameState.roundBets = {};
+      gameState.currentBet = 0;
+      gameState.hasBotRaisedThisStreet = false;
+
+      if (gameState.currentRound === 'preflop') {
+        dealFlopCards();
+        gameState.currentRound = 'flop';
+      } else if (gameState.currentRound === 'flop') {
+        dealTurnCard();
+        gameState.currentRound = 'turn';
+      } else if (gameState.currentRound === 'turn') {
+        dealRiverCard();
+        gameState.currentRound = 'river';
+      } else if (gameState.currentRound === 'river') {
+        gameState.currentRound = 'showdown';
+        break;
+      }
+
+      await delay(320);
+      await runAIBotBettingLoop(0, false);
+      await delay(260);
+
+      activePlayers = gameState.players.filter(p => !p.isFolded);
+      if (activePlayers.length <= 1) {
+        gameState.currentRound = 'showdown';
+        break;
+      }
+    }
+
+    gameState.isBettingInProgress = false;
+    await runShowdown();
+  } catch (err) {
+    console.error('[Bot Loop Recovery]', err);
+    gameState.isBettingInProgress = false;
+    gameState.currentRound = 'showdown';
+    await runShowdown();
+  }
+}
+
+/**
+ * 플레이어 폴드 실행 (수동 폴드 버튼, 20초 타이머 만료 자동 폴드, 자리 비움 0.1초 즉시 폴드 공용)
+ */
+async function executeHumanFold(isAutoTimeout = false, isSitOutFold = false) {
+  if (gameState.isBettingInProgress || gameState.currentRound === 'showdown') return;
+  stopTurnTimer();
+  closeRaisePanel();
+
+  if (!isAutoTimeout) {
+    gameState.consecutiveTimeouts = 0;
+  }
+
+  const human = gameState.players.find(p => p.isHuman);
+  if (!human || human.isFolded) return;
+
+  human.isFolded = true;
+  playSound('sound-fold');
+  const seatEl = document.getElementById(human.seatId);
+  if (seatEl) {
+    seatEl.classList.add('folded');
+    const foldTagText = isSitOutFold ? 'SIT-OUT FOLD' : (isAutoTimeout ? 'TIME OUT FOLD' : 'FOLD');
+    showSeatActionTag(seatEl, foldTagText, 'tag-fold');
+  }
+
+  // 플레이어가 폴드한 후 멈추지 않고 남은 봇들끼리 남은 스트리트와 쇼다운을 끝까지 진행
+  await runBotOnlyRemainingStreets();
+}
+
+/**
  * 다음 판 시작을 위한 모든 상태 및 UI 완전 리셋
  */
 function resetAllGameState() {
   console.log('--- 🔄 [State Reset] 모든 게임 상태 변수 및 UI를 초기화합니다. ---');
 
+  stopTurnTimer();
+  if (gameState.autoNextHandTimer) {
+    clearTimeout(gameState.autoNextHandTimer);
+    gameState.autoNextHandTimer = null;
+  }
+  // 새로운 판 시작 시 시간 연장(Time Bank) 상태 변수 초기화 (isTimeBankUsed = false)
+  isTimeBankUsed = false;
+  gameState.isTimeBankUsed = false;
+  gameState.timeBankUsedThisHand = false;
+  timeLeft = TURN_TIME_LIMIT;
+  currentTurnMaxTime = TURN_TIME_LIMIT;
+
   gameState.isBettingInProgress = false;
   gameState.isPlayerAllIn = false;
+  gameState.rejoinNextHand = false;
   gameState.currentRound = 'preflop';
   gameState.pot = 0;
   gameState.currentBet = BIG_BLIND;
   gameState.roundBets = {};
   gameState.hasBotRaisedThisStreet = false;
   gameState.communityCards = [];
+
+  // 시간 연장 버튼 UI도 즉시 초기 상태로 복구
+  const timeBankBtn = document.getElementById('btn-time-bank');
+  if (timeBankBtn) {
+    timeBankBtn.disabled = false;
+    timeBankBtn.classList.remove('timebank-used');
+    timeBankBtn.style.opacity = '1';
+    timeBankBtn.style.pointerEvents = 'auto';
+    const textEl = timeBankBtn.querySelector('.btn-text');
+    const subEl = timeBankBtn.querySelector('.btn-subtext');
+    if (textEl) textEl.textContent = '⏱ 시간 연장';
+    if (subEl) subEl.textContent = `(+${TIME_BANK_BONUS}초 / 판당 1회)`;
+  }
 
   gameState.players.forEach(player => {
     player.hand = [];
@@ -359,10 +1060,9 @@ function resetAllGameState() {
   closeRaisePanel();
 
   document.querySelectorAll('.seat').forEach(seat => {
-    seat.classList.remove('folded', 'winner-glow', 'active-turn');
-    const existingTag = seat.querySelector('.seat-action-tag');
-    if (existingTag) existingTag.remove();
+    seat.classList.remove('folded', 'winner-glow', 'active-turn', 'timer-urgent');
   });
+  clearAllActionTags();
 
   resetCommunityCards();
   renderBotCards();
@@ -408,7 +1108,7 @@ function dealHoleCards() {
   const sbSeat = document.getElementById(sbPlayer.seatId);
   if (sbSeat) {
     showSeatActionTag(sbSeat, `SB $${sbAmount}`, 'tag-sb');
-    if (potEl) animateFlyingChips(sbSeat, potEl, 2, 'chip-10');
+    if (potEl) animateFlyingChips(sbSeat, potEl, 3, 'chip-10');
   }
 
   const bbAmount = Math.min(bbPlayer.chips, BIG_BLIND);
@@ -417,10 +1117,10 @@ function dealHoleCards() {
   const bbSeat = document.getElementById(bbPlayer.seatId);
   if (bbSeat) {
     showSeatActionTag(bbSeat, `BB $${bbAmount}`, 'tag-bb');
-    if (potEl) animateFlyingChips(bbSeat, potEl, 2, 'chip-50');
+    if (potEl) animateFlyingChips(bbSeat, potEl, 4, 'chip-50');
   }
 
-  playSound('sound-bet');
+  playSound('sound-bet', bbAmount);
 
   console.log(`[홀덤 룰: 블라인드 자동 징수 완료]`);
   console.log(`  - 딜러(D): ${gameState.players[gameState.dealerIndex].name}`);
@@ -443,10 +1143,23 @@ function dealHoleCards() {
   const humanPlayer = gameState.players.find(p => p.isHuman);
   console.log(`[내 패 확인] ${humanPlayer.name}의 홀 카드: [ ${humanPlayer.hand.map(c => c.toString()).join(', ')} ]`);
 
+  // 새로운 판(새 카드 분배) 시작 시 시간 연장 상태 변수 초기화(isTimeBankUsed = false) 및 버튼 활성화(disabled = false)
+  isTimeBankUsed = false;
+  gameState.isTimeBankUsed = false;
+  gameState.timeBankUsedThisHand = false;
+  const timeBankBtn = document.getElementById('btn-time-bank');
+  if (timeBankBtn) {
+    timeBankBtn.disabled = false;
+    timeBankBtn.classList.remove('timebank-used');
+    timeBankBtn.style.opacity = '1';
+    timeBankBtn.style.pointerEvents = 'auto';
+  }
+
   renderPlayerHand();
   renderBotCards();
   disableActionButtons(false);
   updateActionButtonsLabel();
+  startHumanTurnTimer();
 }
 
 // ==========================================================================
@@ -471,8 +1184,9 @@ function executeBet(playerId, amount) {
  * @param {number} amount - 베팅 또는 레이즈 목표 금액
  * @param {boolean} isAllIn - 올인 여부
  * @param {'call' | 'raise' | 'allin'} actionType
+ * @param {boolean} isAutoTimeout - 타이머 만료로 인한 자동 체크 여부
  */
-async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
+async function handlePlayerBet(amount, isAllIn = false, actionType = 'call', isAutoTimeout = false) {
   if (gameState.isBettingInProgress) {
     console.log('[Notice] 현재 베팅 턴이 진행 중입니다. 잠시만 기다려 주세요.');
     return;
@@ -489,6 +1203,10 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
     return;
   }
 
+  stopTurnTimer();
+  if (!isAutoTimeout) {
+    gameState.consecutiveTimeouts = 0;
+  }
   gameState.isBettingInProgress = true;
   gameState.isPlayerAllIn = isAllIn;
   disableActionButtons(true);
@@ -504,9 +1222,9 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
     executeBet(human.id, betToDeduct);
     gameState.roundBets[human.id] = playerSoFar + betToDeduct;
     gameState.currentBet = Math.max(gameState.currentBet, gameState.roundBets[human.id]);
-    playSound('sound-bet');
-    if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, 5, 'chip-1000');
-    if (humanSeat) showSeatActionTag(humanSeat, `🔥 ALL-IN $${betToDeduct.toLocaleString()}`, 'tag-allin');
+    playSound('sound-allin', betToDeduct);
+    if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, 10, 'chip-1000');
+    if (humanSeat) showSeatActionTag(humanSeat, `ALL-IN $${betToDeduct.toLocaleString()}`, 'tag-allin');
     console.log(`[🔥 ALL-IN] ${human.name}이(가) 전재산 $${betToDeduct.toLocaleString()}을 올인했습니다!!`);
   } else if (actionType === 'raise') {
     // 맞춤형 슬라이더로 설정한 목표 금액
@@ -515,9 +1233,17 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
     executeBet(human.id, betToDeduct);
     gameState.roundBets[human.id] = playerSoFar + betToDeduct;
     gameState.currentBet = Math.max(gameState.currentBet, gameState.roundBets[human.id]);
-    playSound('sound-bet');
-    if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, 3, 'chip-500');
-    if (humanSeat) showSeatActionTag(humanSeat, `RAISE $${targetRaise.toLocaleString()}`, 'tag-raise');
+    const isNowAllIn = human.chips === 0;
+    playSound(isNowAllIn ? 'sound-allin' : 'sound-bet', betToDeduct);
+    const chipFlyCount = Math.min(9, Math.max(5, Math.ceil(betToDeduct / 100) + 3));
+    if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, chipFlyCount, 'chip-500');
+    if (humanSeat) {
+      showSeatActionTag(
+        humanSeat,
+        isNowAllIn ? `ALL-IN $${betToDeduct.toLocaleString()}` : `RAISE $${targetRaise.toLocaleString()}`,
+        isNowAllIn ? 'tag-allin' : 'tag-raise'
+      );
+    }
     console.log(`[내 RAISE] ${human.name}이(가) $${targetRaise.toLocaleString()}으로 레이즈했습니다! (추가 베팅: $${betToDeduct.toLocaleString()}, 잔액: $${human.chips.toLocaleString()})`);
   } else {
     // CALL 또는 CHECK (필요 금액에 따라 동적 분기)
@@ -526,12 +1252,21 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
     if (betToDeduct > 0) {
       executeBet(human.id, betToDeduct);
       gameState.roundBets[human.id] = playerSoFar + betToDeduct;
-      playSound('sound-bet');
-      if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, 2, 'chip-100');
-      if (humanSeat) showSeatActionTag(humanSeat, `CALL $${betToDeduct.toLocaleString()}`, 'tag-call');
+      const isNowAllIn = human.chips === 0;
+      playSound(isNowAllIn ? 'sound-allin' : 'sound-bet', betToDeduct);
+      const chipFlyCount = Math.min(7, Math.max(4, Math.ceil(betToDeduct / 100) + 2));
+      if (humanSeat && potEl) animateFlyingChips(humanSeat, potEl, chipFlyCount, 'chip-100');
+      if (humanSeat) {
+        showSeatActionTag(
+          humanSeat,
+          isNowAllIn ? `ALL-IN $${betToDeduct.toLocaleString()}` : `CALL $${betToDeduct.toLocaleString()}`,
+          isNowAllIn ? 'tag-allin' : 'tag-call'
+        );
+      }
       console.log(`[내 CALL] ${human.name}이(가) $${betToDeduct.toLocaleString()}을 콜했습니다! (잔액: $${human.chips.toLocaleString()})`);
     } else {
-      // CHECK: 추가 베팅액 없이 무료로 다음 턴 넘기기
+      // CHECK: 추가 베팅액 없이 무료로 다음 턴 넘기기 + 묵직한 체크 노크 사운드
+      playSound('sound-check', 0);
       if (humanSeat) showSeatActionTag(humanSeat, 'CHECK', 'tag-check');
       console.log(`[내 CHECK] ${human.name}이(가) 체크(Check)하여 턴을 넘겼습니다.`);
     }
@@ -560,7 +1295,7 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
   }
 
   // 4.5. 내가 체크(또는 콜)했는데 뒤이어 봇이 레이즈(Raise)하여 내 추가 콜 금액이 발생한 경우:
-  // 다음 라운드로 바로 넘어가지 않고 내게 CALL / FOLD 응답 기회를 줌
+  // 다음 라운드로 바로 넘어가지 않고 내게 CALL / FOLD 응답 기회 + 15초 턴 타이머 부여
   const humanRoundBetAfterBots = gameState.roundBets[human.id] || 0;
   if (gameState.currentBet > humanRoundBetAfterBots && human.chips > 0) {
     const extraNeeded = gameState.currentBet - humanRoundBetAfterBots;
@@ -568,6 +1303,7 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
     updateActionButtonsLabel();
     gameState.isBettingInProgress = false;
     disableActionButtons(false);
+    startHumanTurnTimer();
     return;
   }
 
@@ -595,16 +1331,17 @@ async function handlePlayerBet(amount, isAllIn = false, actionType = 'call') {
 
   if (gameState.currentRound !== 'showdown') {
     disableActionButtons(false);
+    startHumanTurnTimer();
   }
 }
 
 /**
- * 봇들이 AI 지능으로 Raise / Call / Fold 의사결정하는 턴 루프
+ * 봇들이 AI 지능(Hand Equity + Pot Odds + Bluffing)으로 Raise / Call / Fold 의사결정하는 턴 루프
  */
 async function runAIBotBettingLoop(targetBetAmount, isPlayerAllIn = false) {
   const bots = gameState.players.filter(p => !p.isHuman);
 
-  console.log(`--- 🤖 AI 봇 의사결정 턴 시작 (Round: ${gameState.currentRound}, Target Bet: $${targetBetAmount}, All-in: ${isPlayerAllIn}) ---`);
+  console.log(`--- 🤖 AI 봇 의사결정 턴 시작 (Round: ${gameState.currentRound}, Target Bet: $${targetBetAmount}, Pot: $${gameState.pot}, All-in: ${isPlayerAllIn}) ---`);
 
   for (const bot of bots) {
     if (bot.isFolded) continue;
@@ -617,26 +1354,40 @@ async function runAIBotBettingLoop(targetBetAmount, isPlayerAllIn = false) {
       continue;
     }
 
-    await delay(450);
-
     const seatEl = document.getElementById(bot.seatId);
     const potEl = document.getElementById('pot-display');
-    if (seatEl) seatEl.classList.add('active-turn');
+
+    // 봇의 턴에서도 15초 프로그레스 바 UI를 표시하며 사고 시간 연출
+    startTurnTimer(bot, () => {
+      bot.isFolded = true;
+    });
+
+    await delay(520);
+    stopTurnTimer();
 
     const neededForBot = Math.max(0, currentTarget - botSoFar);
 
-    // AI 엔진 호출 (플레이어의 올인 여부 및 현재 맞춰야 할 베팅액 전달)
+    // 스마트 AI 엔진 호출 (현재 팟 크기 gameState.pot을 전달하여 Pot Odds 정밀 계산)
     const decision = window.AIBotEngine 
-      ? window.AIBotEngine.decideBotAction(bot, gameState.communityCards, gameState.currentRound, neededForBot, isPlayerAllIn)
+      ? window.AIBotEngine.decideBotAction(
+          bot,
+          gameState.communityCards,
+          gameState.currentRound,
+          neededForBot,
+          isPlayerAllIn,
+          gameState.pot
+        )
       : { action: 'call', amount: neededForBot, reason: '기본 콜' };
 
     if (decision.action === 'fold') {
       if (neededForBot === 0) {
         // 콜 금액이 0원일 때는 폴드 대신 무료 체크 수행
+        playSound('sound-check', 0);
         if (seatEl) showSeatActionTag(seatEl, 'CHECK', 'tag-check');
         console.log(`[봇 CHECK] ${bot.name}이(가) 체크했습니다.`);
       } else {
         bot.isFolded = true;
+        playSound('sound-fold');
         if (seatEl) {
           seatEl.classList.add('folded');
           showSeatActionTag(seatEl, 'FOLD', 'tag-fold');
@@ -650,19 +1401,36 @@ async function runAIBotBettingLoop(targetBetAmount, isPlayerAllIn = false) {
         gameState.roundBets[bot.id] = newBotTotal;
         gameState.currentBet = Math.max(gameState.currentBet, newBotTotal);
         gameState.hasBotRaisedThisStreet = true;
-        playSound('sound-bet');
-        if (seatEl && potEl) animateFlyingChips(seatEl, potEl, 3, 'chip-500');
-        if (seatEl) showSeatActionTag(seatEl, `RAISE $${gameState.currentBet}`, 'tag-raise');
+        const isBotAllIn = bot.chips === 0;
+        playSound(isBotAllIn ? 'sound-allin' : 'sound-bet', raiseAdd);
+        const flyCount = Math.min(9, Math.max(5, Math.ceil(raiseAdd / 100) + 3));
+        if (seatEl && potEl) animateFlyingChips(seatEl, potEl, flyCount, 'chip-500');
+        if (seatEl) {
+          showSeatActionTag(
+            seatEl,
+            isBotAllIn ? `ALL-IN $${raiseAdd.toLocaleString()}` : `RAISE $${gameState.currentBet.toLocaleString()}`,
+            isBotAllIn ? 'tag-allin' : 'tag-raise'
+          );
+        }
         console.log(`[봇 RAISE] ${bot.name}이(가) $${gameState.currentBet}으로 판돈을 올렸습니다! (${decision.reason})`);
       } else {
         const callAmt = Math.min(bot.chips, neededForBot);
         if (callAmt > 0) {
           executeBet(bot.id, callAmt);
           gameState.roundBets[bot.id] = botSoFar + callAmt;
-          playSound('sound-bet');
-          if (seatEl && potEl) animateFlyingChips(seatEl, potEl, 2, 'chip-50');
-          if (seatEl) showSeatActionTag(seatEl, `CALL $${callAmt}`, 'tag-call');
+          const isBotAllIn = bot.chips === 0;
+          playSound(isBotAllIn ? 'sound-allin' : 'sound-bet', callAmt);
+          const flyCount = Math.min(7, Math.max(4, Math.ceil(callAmt / 100) + 2));
+          if (seatEl && potEl) animateFlyingChips(seatEl, potEl, flyCount, 'chip-50');
+          if (seatEl) {
+            showSeatActionTag(
+              seatEl,
+              isBotAllIn ? `ALL-IN $${callAmt.toLocaleString()}` : `CALL $${callAmt.toLocaleString()}`,
+              isBotAllIn ? 'tag-allin' : 'tag-call'
+            );
+          }
         } else {
+          playSound('sound-check', 0);
           if (seatEl) showSeatActionTag(seatEl, 'CHECK', 'tag-check');
         }
       }
@@ -671,20 +1439,25 @@ async function runAIBotBettingLoop(targetBetAmount, isPlayerAllIn = false) {
       if (callAmt > 0) {
         executeBet(bot.id, callAmt);
         gameState.roundBets[bot.id] = botSoFar + callAmt;
-        playSound('sound-bet');
-        if (seatEl && potEl) animateFlyingChips(seatEl, potEl, 2, 'chip-50');
-        if (seatEl) showSeatActionTag(seatEl, `CALL $${callAmt}`, 'tag-call');
+        const isBotAllIn = bot.chips === 0;
+        playSound(isBotAllIn ? 'sound-allin' : 'sound-bet', callAmt);
+        const flyCount = Math.min(7, Math.max(4, Math.ceil(callAmt / 100) + 2));
+        if (seatEl && potEl) animateFlyingChips(seatEl, potEl, flyCount, 'chip-50');
+        if (seatEl) {
+          showSeatActionTag(
+            seatEl,
+            isBotAllIn ? `ALL-IN $${callAmt.toLocaleString()}` : `CALL $${callAmt.toLocaleString()}`,
+            isBotAllIn ? 'tag-allin' : 'tag-call'
+          );
+        }
         console.log(`[봇 CALL] ${bot.name}이(가) $${callAmt}을 콜했습니다. (${decision.reason})`);
       } else {
         // 0원 콜은 체크(CHECK)로 표기
+        playSound('sound-check', 0);
         if (seatEl) showSeatActionTag(seatEl, 'CHECK', 'tag-check');
         console.log(`[봇 CHECK] ${bot.name}이(가) 체크했습니다. (${decision.reason})`);
       }
     }
-
-    setTimeout(() => {
-      if (seatEl) seatEl.classList.remove('active-turn');
-    }, 350);
   }
 
   console.log(`[베팅 완료] 라운드 베팅 종료! 총 누적 팟(TOTAL POT): $${gameState.pot.toLocaleString()}`);
@@ -717,20 +1490,131 @@ async function runAllInBoardRunout() {
 }
 
 /**
- * 좌석 상단에 액션 뱃지를 띄우는 함수 (칩 아이콘 포함)
+ * RAISE 또는 ALL-IN 발생 시 칩을 세게 내려친 듯 테이블 전체를 '드르륵' 흔드는 화면 진동 효과
+ */
+function triggerTableImpactShake(isHeavy = false) {
+  const tableEl = document.querySelector('.poker-table') || document.getElementById('game-container');
+  if (!tableEl) return;
+
+  tableEl.classList.remove('table-shake', 'table-shake-heavy');
+  void tableEl.offsetWidth; // 리플로우 강제 실행으로 연속 레이즈/올인 시에도 즉시 재진동
+  const shakeClass = isHeavy ? 'table-shake-heavy' : 'table-shake';
+  tableEl.classList.add(shakeClass);
+
+  setTimeout(() => {
+    tableEl.classList.remove('table-shake', 'table-shake-heavy');
+  }, 460);
+}
+
+/**
+ * 화면에 남아있는 모든 액션 폭발 팝업(.seat-action-tag)과 예약 타이머를 즉시 제거하는 클린업 함수
+ */
+function clearAllActionTags() {
+  while (actionTagTimers.length > 0) {
+    clearTimeout(actionTagTimers.pop());
+  }
+  document.querySelectorAll('.seat-action-tag').forEach(el => {
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+    el.remove();
+  });
+}
+
+/**
+ * 베팅을 한 플레이어의 현재 위치(x, y)와 테이블 정중앙(TOTAL POT) 위치를 계산한 뒤,
+ * 카드나 프로필에 겹치지 않는 '딱 그 둘 사이의 빈 공간(허공)'에
+ * 거대한 코믹스 스타일 폭발(Starburst) 이펙트를 터뜨리고 1.5초 뒤 DOM에서 완전히 삭제(remove)하는 함수
  */
 function showSeatActionTag(seatEl, text, className) {
-  const oldTag = seatEl.querySelector('.seat-action-tag');
-  if (oldTag) oldTag.remove();
+  if (!seatEl) return;
 
-  const tag = document.createElement('div');
-  tag.className = `seat-action-tag ${className}`;
-  if (text.includes('$')) {
-    tag.innerHTML = `<span class="casino-chip chip-xs"></span><span>${text}</span>`;
+  const feltEl = document.querySelector('.table-felt');
+  const potEl = document.getElementById('pot-display');
+  if (!feltEl) return;
+
+  const seatId = seatEl.id || 'seat-unknown';
+
+  // SB/BB 동시 표시를 제외한 일반 베팅 액션 시, 이전 턴의 폭발 잔상이 화면에 쌓여 카드를 가리지 않도록 즉시 정리
+  if (className !== 'tag-bb') {
+    feltEl.querySelectorAll('.seat-action-tag').forEach(el => {
+      if (className === 'tag-sb' || !el.classList.contains('tag-sb')) {
+        el.remove();
+      }
+    });
   } else {
-    tag.textContent = text;
+    feltEl.querySelectorAll(`.seat-action-tag[data-seat-id="${seatId}"]`).forEach(el => el.remove());
   }
-  seatEl.appendChild(tag);
+
+  const pillEl = seatEl.querySelector('.player-info-pill') || seatEl;
+  const feltRect = feltEl.getBoundingClientRect();
+  const pillRect = pillEl.getBoundingClientRect();
+  const potRect = potEl ? potEl.getBoundingClientRect() : null;
+
+  let targetX = feltRect.width * 0.5;
+  let targetY = feltRect.height * 0.5;
+
+  if (feltRect.width > 0 && pillRect.width > 0) {
+    // 1) 액션을 취한 플레이어 프로필 중심 좌표 (테이블 펠트 내부 기준)
+    const playerX = (pillRect.left + pillRect.width / 2) - feltRect.left;
+    const playerY = (pillRect.top + pillRect.height / 2) - feltRect.top;
+
+    // 2) 테이블 정중앙 TOTAL POT 중심 좌표 (테이블 펠트 내부 기준)
+    const potX = (potRect && potRect.width > 0)
+      ? (potRect.left + potRect.width / 2) - feltRect.left
+      : feltRect.width / 2;
+    const potY = (potRect && potRect.height > 0)
+      ? (potRect.top + potRect.height / 2) - feltRect.top
+      : feltRect.height * 0.34;
+
+    // 3) 플레이어(x, y)와 TOTAL POT(potX, potY) 딱 그 둘 사이의 빈 공간(허공) 중점 계산
+    targetX = playerX + (potX - playerX) * 0.52;
+    targetY = playerY + (potY - playerY) * 0.52;
+
+    // 내 자리(PLAYER 1)는 정중앙 수직선상에 내 홀 카드 2장(#player-slots)이 놓여 있으므로
+    // 내 카드와 커뮤니티 카드 사이의 우측 빈 펠트 허공으로 살짝 비켜서 카드 가림을 100% 방지
+    if (seatId === 'seat-player-1') {
+      targetX = playerX + (potX - playerX) * 0.5 + Math.min(feltRect.width * 0.22, 96);
+      targetY = playerY + (potY - playerY) * 0.54;
+    }
+
+    // 좌우 테이블 림 밖으로 잘리지 않도록 안전 여백 클램핑
+    const padX = Math.min(feltRect.width * 0.18, 84);
+    const padY = 48;
+    targetX = Math.max(padX, Math.min(feltRect.width - padX, targetX));
+    targetY = Math.max(padY, Math.min(feltRect.height - padY, targetY));
+  }
+
+  const isHeavyImpact = className === 'tag-raise' || className === 'tag-allin';
+  const tag = document.createElement('div');
+  tag.className = `seat-action-tag comic-starburst ${className}${isHeavyImpact ? ' impact-burst-200' : ''}`;
+  tag.dataset.seatId = seatId;
+  tag.style.left = `${Math.round(targetX)}px`;
+  tag.style.top = `${Math.round(targetY)}px`;
+
+  const displayLabel = className === 'tag-allin' && !text.endsWith('!') ? `${text}!` : text;
+  tag.innerHTML = `<span class="bubble-label" data-text="${displayLabel}">${displayLabel}</span>`;
+
+  feltEl.appendChild(tag);
+
+  // RAISE나 ALL-IN이 터질 때는 테이블 전체가 '드르륵' 흔들리는 타격감 연출
+  if (isHeavyImpact) {
+    triggerTableImpactShake(className === 'tag-allin');
+  }
+
+  // CSS 애니메이션 종료(1.5초)에 맞춰 요소를 화면(DOM)에서 완전히 삭제하는 이중 클린업 로직
+  const removeTagFromDOM = () => {
+    if (tag && tag.parentNode) {
+      tag.parentNode.removeChild(tag);
+    }
+    if (tag && typeof tag.remove === 'function') {
+      tag.remove();
+    }
+  };
+
+  tag.addEventListener('animationend', removeTagFromDOM, { once: true });
+  const cleanupTimer = setTimeout(removeTagFromDOM, 1500);
+  actionTagTimers.push(cleanupTimer);
 }
 
 // ==========================================================================
@@ -815,6 +1699,7 @@ function setRaisePreset(multiplier) {
 
 function dealFlopCards() {
   console.log('--- 🎴 [단계: 플롭(Flop)] 커뮤니티 카드 3장 오픈 ---');
+  clearAllActionTags();
   playSound('sound-card');
 
   const flopCards = [
@@ -843,6 +1728,7 @@ function dealFlopCards() {
 
 function dealTurnCard() {
   console.log('--- 🎴 [단계: 턴(Turn)] 4번째 커뮤니티 카드 오픈 ---');
+  clearAllActionTags();
   playSound('sound-card');
 
   const turnCard = gameState.deck.pop();
@@ -858,6 +1744,7 @@ function dealTurnCard() {
 
 function dealRiverCard() {
   console.log('--- 🎴 [단계: 리버(River)] 5번째(마지막) 커뮤니티 카드 오픈 ---');
+  clearAllActionTags();
   playSound('sound-card');
 
   const riverCard = gameState.deck.pop();
@@ -880,6 +1767,8 @@ async function runShowdown() {
   console.log('🏆 [쇼다운(Showdown)] 봇 패 공개 및 승패 판독');
   console.log('==============================================');
 
+  stopTurnTimer();
+  clearAllActionTags();
   revealActiveBotCards();
   playSound('sound-card');
 
@@ -990,6 +1879,10 @@ function showWinnerModal(winners, winningHand, wonPot) {
   if (nextHandBtn) {
     nextHandBtn.style.display = 'block';
     nextHandBtn.onclick = () => {
+      if (gameState.autoNextHandTimer) {
+        clearTimeout(gameState.autoNextHandTimer);
+        gameState.autoNextHandTimer = null;
+      }
       hideGameModal();
       const human = gameState.players.find(p => p.isHuman);
       if (human && human.chips < BIG_BLIND) {
@@ -1001,6 +1894,24 @@ function showWinnerModal(winners, winningHand, wonPot) {
   }
 
   console.log(`[정산 완료] ${winTitle} | ${winSubtitle} | 획득 상금: $${wonPot.toLocaleString()}`);
+
+  // 자리 비움(Sit-Out) 상태이거나 '▶ 다시 시작하기'를 눌러 다음 판 복귀가 예약된 경우,
+  // 게임 루프가 멈추지 않도록 1.5초 후 자동으로 다음 판(Next Hand)을 시작
+  if (gameState.isSittingOut || gameState.rejoinNextHand) {
+    if (gameState.autoNextHandTimer) clearTimeout(gameState.autoNextHandTimer);
+    gameState.autoNextHandTimer = setTimeout(() => {
+      gameState.autoNextHandTimer = null;
+      if (gameState.currentRound === 'showdown') {
+        hideGameModal();
+        const human = gameState.players.find(p => p.isHuman);
+        if (human && human.chips < BIG_BLIND) {
+          showBuyInModal(true);
+        } else {
+          startNextHand();
+        }
+      }
+    }, 1500);
+  }
 }
 
 function hideGameModal() {
@@ -1324,6 +2235,7 @@ function disableActionButtons(disabled) {
       btn.style.pointerEvents = disabled ? 'none' : 'auto';
     }
   });
+  updateTimeBankButtonDOM();
 }
 
 function renderTable() {
@@ -1386,6 +2298,8 @@ function setupEventListeners() {
   const callBtn = document.getElementById('btn-call');
   const raiseBtn = document.getElementById('btn-raise');
   const allinBtn = document.getElementById('btn-allin');
+  const timeBankBtn = document.getElementById('btn-time-bank');
+  const imBackBtn = document.getElementById('btn-im-back');
   const nextHandBtn = document.getElementById('next-hand-btn') || document.getElementById('btn-next-hand');
 
   // 맞춤형 레이즈 슬라이더 UI 이벤트
@@ -1396,28 +2310,39 @@ function setupEventListeners() {
 
   if (foldBtn) {
     foldBtn.addEventListener('click', () => {
+      unlockAudioContext();
       console.log('[Action] Fold 버튼 클릭');
-      const human = gameState.players.find(p => p.isHuman);
-      human.isFolded = true;
-      const seatEl = document.getElementById(human.seatId);
-      if (seatEl) {
-        seatEl.classList.add('folded');
-        showSeatActionTag(seatEl, 'FOLD', 'tag-fold');
-      }
-      gameState.currentRound = 'showdown';
-      runShowdown();
+      executeHumanFold(false, false);
     });
   }
 
   if (callBtn) {
     callBtn.addEventListener('click', () => {
-      handlePlayerBet(DEFAULT_BET_AMOUNT, false, 'call');
+      unlockAudioContext();
+      handlePlayerBet(DEFAULT_BET_AMOUNT, false, 'call', false);
+    });
+  }
+
+  // ⏱ 시간 연장 (+15초 / 판당 1회) 버튼
+  if (timeBankBtn) {
+    timeBankBtn.addEventListener('click', () => {
+      unlockAudioContext();
+      extendTurnTimer();
+    });
+  }
+
+  // ▶ 다시 시작하기 (게임 참여) 버튼 (자리 비움 복귀)
+  if (imBackBtn) {
+    imBackBtn.addEventListener('click', () => {
+      handleImBackClick();
     });
   }
 
   // RAISE 버튼: 슬라이더 패널 오픈
   if (raiseBtn) {
     raiseBtn.addEventListener('click', () => {
+      unlockAudioContext();
+      playSound('sound-check');
       openRaisePanel();
     });
   }
@@ -1425,6 +2350,7 @@ function setupEventListeners() {
   // ALL-IN 버튼: 전재산 올인 베팅
   if (allinBtn) {
     allinBtn.addEventListener('click', () => {
+      unlockAudioContext();
       const human = gameState.players.find(p => p.isHuman);
       if (!human || human.chips <= 0) return;
       handlePlayerBet(human.chips, true, 'allin');
@@ -1576,6 +2502,14 @@ function setupBuyInEvents() {
 
 function initGame() {
   console.log('텍사스 홀덤 6인용 테이블 세팅 완료!');
+
+  // 브라우저 오토플레이 정책 해제: 사용자의 첫 화면 터치/클릭/키 입력 시 AudioContext 즉시 활성화
+  ['pointerdown', 'click', 'touchstart', 'keydown'].forEach(evtName => {
+    document.addEventListener(evtName, () => {
+      unlockAudioContext();
+    }, { once: true, passive: true });
+  });
+
   setupEventListeners();
   setupBuyInEvents();
   updateActionButtonsLabel();

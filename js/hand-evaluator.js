@@ -207,7 +207,33 @@ function compareScores(a, b) {
  * @returns {Object} 최고 족보 결과 객체
  */
 function evaluate7Cards(sevenCards) {
-  if (!sevenCards || sevenCards.length < 5) return null;
+  if (!sevenCards || sevenCards.length === 0) {
+    return {
+      rankInfo: HAND_RANKS.HIGH_CARD,
+      score: [1, 0],
+      description: '하이 카드',
+      bestCards: []
+    };
+  }
+
+  if (sevenCards.length < 5) {
+    const sorted = [...sevenCards].sort((a, b) => b.value - a.value);
+    const values = sorted.map(c => c.value);
+    if (sorted.length >= 2 && sorted[0].value === sorted[1].value) {
+      return {
+        rankInfo: HAND_RANKS.ONE_PAIR,
+        score: [HAND_RANKS.ONE_PAIR.rank, sorted[0].value, ...(values.slice(2))],
+        description: `${sorted[0].rank} 원 페어`,
+        bestCards: sorted
+      };
+    }
+    return {
+      rankInfo: HAND_RANKS.HIGH_CARD,
+      score: [HAND_RANKS.HIGH_CARD.rank, ...values],
+      description: `하이 카드 (${sorted[0].rank} 하이)`,
+      bestCards: sorted
+    };
+  }
 
   // 7C5 = 21개의 모든 5장 조합 생성
   const combinations = getCombinations(sevenCards, 5);

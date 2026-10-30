@@ -265,6 +265,7 @@ html, body {
 
 /* Player Info Badges - 펠트 위에서 떠 있는 입체 그림자 */
 .player-info-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -316,25 +317,25 @@ html, body {
 }
 
 /* ==========================================================================
-   Casino Chips (3D Floating Elevation with Realistic Dashed Ring & Core)
+   Casino Chips (1.5x Upgraded 3D Scale & Realistic Dashed Ring & Core)
    ========================================================================== */
 .casino-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 17px;
-  height: 17px;
-  min-width: 17px;
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
   border-radius: 50%;
   position: relative;
   box-sizing: border-box;
   background: radial-gradient(circle at 35% 35%, #ffd700 0%, #d4af37 55%, #8c6d1f 100%);
-  border: 1.8px dashed rgba(255, 255, 255, 0.95);
+  border: 2.4px dashed rgba(255, 255, 255, 0.95);
   box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.75),
-    0 1px 2px rgba(0, 0, 0, 0.6),
-    inset 0 1px 2px rgba(255, 255, 255, 0.75),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+    0 5px 10px rgba(0, 0, 0, 0.8),
+    0 2px 3px rgba(0, 0, 0, 0.65),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.8),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.55);
   vertical-align: middle;
   flex-shrink: 0;
   user-select: none;
@@ -342,55 +343,55 @@ html, body {
 
 .casino-chip::after {
   content: '';
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.55);
 }
 
-/* Pot Chip (Larger & Glowing Golden) */
+/* Pot Chip (1.5x Larger & Glowing Golden) */
 .casino-chip.chip-pot {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  border-width: 2.2px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-width: 3px;
   background: radial-gradient(circle at 35% 35%, #ffeaa7 0%, #f39c12 55%, #b76e04 100%);
   box-shadow: 
-    0 5px 10px rgba(0, 0, 0, 0.78),
-    0 0 10px rgba(251, 224, 130, 0.55),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    0 6px 14px rgba(0, 0, 0, 0.82),
+    0 0 14px rgba(251, 224, 130, 0.65),
+    inset 0 1.5px 3px rgba(255, 255, 255, 0.85);
 }
 
 .casino-chip.chip-pot::after {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 }
 
-/* Small Chip for Player Info Badges */
+/* Small Chip for Player Info Badges (1.5x Scaled) */
 .casino-chip.chip-sm {
-  width: 15px;
-  height: 15px;
-  min-width: 15px;
-  border-width: 1.5px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-width: 2.2px;
 }
 
 .casino-chip.chip-sm::after {
-  width: 5px;
-  height: 5px;
+  width: 7.5px;
+  height: 7.5px;
 }
 
-/* Micro Chip for Seat Action Tags */
+/* Micro Chip for Seat Action Tags (1.5x Scaled) */
 .casino-chip.chip-xs {
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  border-width: 1.2px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-width: 1.8px;
 }
 
 .casino-chip.chip-xs::after {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 /* ==========================================================================
@@ -1138,10 +1139,97 @@ html, body {
   }
 }
 
-/* Active Player Turn Glow */
+/* Active Player Turn Glow & 15-Second Red Progress Bar UI */
 .seat.active-turn .player-info-pill {
-  border-color: var(--gold-light);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7), 0 0 14px rgba(251, 224, 130, 0.75);
+  border-color: #ff4d4d;
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.75),
+    0 0 16px rgba(255, 59, 59, 0.75),
+    inset 0 0 8px rgba(255, 59, 59, 0.25);
+}
+
+/* 3초 이하 임박 시 프로필 테두리 긴장감 있는 레드 점멸 */
+.seat.active-turn.timer-urgent .player-info-pill {
+  border-color: #ff1e1e;
+  animation: urgentTimerPulse 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes urgentTimerPulse {
+  0% {
+    box-shadow:
+      0 6px 14px rgba(0, 0, 0, 0.8),
+      0 0 12px rgba(255, 30, 30, 0.75),
+      inset 0 0 6px rgba(255, 30, 30, 0.3);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow:
+      0 8px 20px rgba(0, 0, 0, 0.9),
+      0 0 26px rgba(255, 0, 0, 1),
+      0 0 40px rgba(255, 59, 59, 0.75),
+      inset 0 0 12px rgba(255, 30, 30, 0.65);
+    transform: scale(1.04);
+  }
+}
+
+/* 플레이어 프로필 하단 15초 프로그레스 바 트랙 */
+.turn-timer-track {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -4px;
+  height: 5px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 77, 77, 0.55);
+  border-radius: 999px;
+  overflow: hidden;
+  z-index: 12;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.turn-timer-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #ff002b 0%, #ff4d4d 55%, #ff8787 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(255, 30, 30, 0.95);
+  transition: width 0.1s linear;
+}
+
+.turn-timer-bar.timer-extended-boost {
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 16px #ff4d4d, 0 0 24px rgba(56, 189, 248, 0.9);
+}
+
+.seat.timer-urgent .turn-timer-bar {
+  background: linear-gradient(90deg, #ff0000 0%, #ffea00 100%);
+  box-shadow: 0 0 14px #ff0000;
+}
+
+.turn-timer-badge {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+  border: 1px solid #fecaca;
+  color: #ffffff;
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.75), 0 0 8px rgba(239, 68, 68, 0.75);
+  z-index: 14;
+  pointer-events: none;
+}
+
+.seat.timer-urgent .turn-timer-badge {
+  background: linear-gradient(180deg, #ff002b 0%, #7f1d1d 100%);
+  border-color: #ffea00;
+  color: #ffea00;
 }
 
 /* Winner Seat Aura Glow */
@@ -1153,102 +1241,333 @@ html, body {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Folded Player Styling */
-.seat.folded {
-  opacity: 0.42;
-  filter: grayscale(0.7);
-  transition: opacity 0.3s ease, filter 0.3s ease;
+/* Folded Player Styling (액션 팝업은 선명하게 터지도록 카드와 아바타 요소만 어둡게 처리) */
+.seat.folded .bot-cards,
+.seat.folded .player-hand-container,
+.seat.folded .seat-chip-stack {
+  opacity: 0.38;
+  filter: grayscale(0.8);
+  transition: opacity 0.3s ease, filter 0.3s ease, transform 0.3s ease;
 }
 
 .seat.folded .bot-cards {
   transform: scale(0.88);
 }
 
-/* Dynamic Action Tag (Floating Notification Pill) */
-.seat-action-tag {
+.seat.folded .player-info-pill {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.seat.folded .player-avatar,
+.seat.folded .player-name,
+.seat.folded .player-chips-box {
+  opacity: 0.55;
+  filter: grayscale(0.7);
+}
+
+/* ==========================================================================
+   Comic-Book Starburst Explosion Effect (코믹스 스타일 폭발 이펙트)
+   - 기존 타원형 말풍선 배지를 완전히 제거하고 CSS clip-path 다각형 폭발(Starburst) 적용
+   - 플레이어(x, y)와 테이블 정중앙(TOTAL POT) 사이의 빈 허공 좌표에 동적 스폰
+   - RAISE / ALL-IN 시 0.1초 만에 200% 크기로 폭발 후 탄성 안착, 1.5초 뒤 연기처럼 블러 소멸
+   - RAISE / ALL-IN 발생 시 테이블 전체가 '드르륵' 흔들리는 타격감 진동 애니메이션
+   ========================================================================== */
+
+/* 칩을 세게 내려친 듯 테이블 전체가 '드르륵' 흔들리는 화면 진동 애니메이션 */
+.poker-table.table-shake {
+  animation: tableImpactShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.poker-table.table-shake-heavy {
+  animation: tableImpactShakeHeavy 0.46s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes tableImpactShake {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  12% { transform: translate3d(-7px, 5px, 0) rotate(-0.8deg); }
+  24% { transform: translate3d(7px, -6px, 0) rotate(0.8deg); }
+  36% { transform: translate3d(-6px, 4px, 0) rotate(-0.6deg); }
+  48% { transform: translate3d(6px, -4px, 0) rotate(0.6deg); }
+  64% { transform: translate3d(-4px, 2px, 0) rotate(-0.3deg); }
+  80% { transform: translate3d(3px, -2px, 0) rotate(0.2deg); }
+}
+
+@keyframes tableImpactShakeHeavy {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  10% { transform: translate3d(-11px, 8px, 0) rotate(-1.3deg); }
+  20% { transform: translate3d(11px, -9px, 0) rotate(1.3deg); }
+  30% { transform: translate3d(-10px, -6px, 0) rotate(-1.1deg); }
+  42% { transform: translate3d(9px, 7px, 0) rotate(1.0deg); }
+  55% { transform: translate3d(-7px, 5px, 0) rotate(-0.7deg); }
+  70% { transform: translate3d(6px, -4px, 0) rotate(0.5deg); }
+  85% { transform: translate3d(-3px, 2px, 0) rotate(-0.25deg); }
+}
+
+/* 코믹스 스타버스트(Starburst) 본체 래퍼 */
+.seat-action-tag.comic-starburst {
   position: absolute;
-  top: -12px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  z-index: 10;
+  justify-content: center;
+  min-width: 175px;
+  min-height: 92px;
+  padding: 24px 34px;
+  z-index: 65;
+  pointer-events: none;
   white-space: nowrap;
-  box-shadow: 
-    0 5px 12px rgba(0, 0, 0, 0.7),
-    0 1px 3px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px rgba(255, 255, 255, 0.35);
-  animation: tagPopAnim 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
+  /* clip-path로 잘린 뾰족한 외곽선을 따라 입체적인 만화 그림자 형성 */
+  filter:
+    drop-shadow(0 10px 0 rgba(0, 0, 0, 0.92))
+    drop-shadow(0 16px 24px rgba(0, 0, 0, 0.85));
+  animation: starburstPopSmoke 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* 내 자리(PLAYER 1) 알림 태그는 우측 측면에 배치하여 중앙 커뮤니티 카드와 절대 겹치지 않도록 처리 */
-.player-section .seat-action-tag {
-  top: 50%;
-  left: calc(100% + 10px);
-  transform: translateY(-50%);
-  font-size: 0.68rem;
-  padding: 3px 10px;
-  border-radius: 12px;
-  gap: 4px;
-  animation: playerTagPopAnim 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.25) forwards;
+/* RAISE & ALL-IN: 0.1초(6.7%) 만에 200% 크기로 폭발했다가 튕기며 자리 잡고 1.5초 뒤 연기처럼 소멸 */
+.seat-action-tag.comic-starburst.impact-burst-200 {
+  min-width: 215px;
+  min-height: 112px;
+  padding: 28px 42px;
+  z-index: 75;
+  animation: starburstImpact200Smoke 1.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
-@keyframes playerTagPopAnim {
-  0% { transform: translateY(-50%) scale(0.6); opacity: 0; }
-  100% { transform: translateY(-50%) scale(1); opacity: 1; }
+/* 바깥쪽 뾰족뾰족한 코믹스 폭발 테두리 (24각 비대칭 Starburst Polygon) */
+.seat-action-tag.comic-starburst::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  background: #111111;
+  clip-path: polygon(
+    50% 0%, 63% 15%, 79% 2%, 76% 21%,
+    97% 14%, 85% 34%, 100% 48%, 84% 61%,
+    98% 81%, 77% 78%, 83% 98%, 63% 85%,
+    50% 100%, 37% 85%, 17% 98%, 23% 78%,
+    2% 81%, 16% 61%, 0% 48%, 15% 34%,
+    3% 14%, 24% 21%, 21% 2%, 37% 15%
+  );
+  z-index: 1;
 }
 
-.seat-action-tag.tag-raise {
-  background: var(--gold-gradient);
-  color: #1a1002;
-  border: 1px solid var(--gold-light);
+/* 안쪽 강렬한 컬러 폭발 면 (24각 Starburst Polygon) */
+.seat-action-tag.comic-starburst::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(
+    50% 0%, 63% 15%, 79% 2%, 76% 21%,
+    97% 14%, 85% 34%, 100% 48%, 84% 61%,
+    98% 81%, 77% 78%, 83% 98%, 63% 85%,
+    50% 100%, 37% 85%, 17% 98%, 23% 78%,
+    2% 81%, 16% 61%, 0% 48%, 15% 34%,
+    3% 14%, 24% 21%, 21% 2%, 37% 15%
+  );
+  z-index: 2;
 }
 
-.seat-action-tag.tag-call {
-  background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+/* 기존 대비 3~4배 이상 거대한 코믹스 임팩트 타이포그래피 */
+.seat-action-tag.comic-starburst .bubble-label {
+  position: relative;
+  z-index: 3;
+  font-family: 'Montserrat', 'Arial Black', Impact, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
   color: #ffffff;
-  border: 1px solid #58d68d;
+  transform: rotate(-4deg);
+  /* 두꺼운 코믹스 블랙 외곽선 + 강렬한 3D 입체 그림자 */
+  text-shadow:
+    -2px -2px 0 #000000,
+     2px -2px 0 #000000,
+    -2px  2px 0 #000000,
+     2px  2px 0 #000000,
+     0px  4px 0 #000000,
+     3px  6px 10px rgba(0, 0, 0, 0.95);
 }
 
-.seat-action-tag.tag-fold {
-  background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+.seat-action-tag.comic-starburst.impact-burst-200 .bubble-label {
+  font-size: 2.05rem;
+  letter-spacing: 1.5px;
+  text-shadow:
+    -2.5px -2.5px 0 #000000,
+     2.5px -2.5px 0 #000000,
+    -2.5px  2.5px 0 #000000,
+     2.5px  2.5px 0 #000000,
+     0px    5px   0 #000000,
+     4px    8px   14px rgba(0, 0, 0, 0.98);
+}
+
+/* 일반 액션(CALL, CHECK, FOLD, SB, BB): 폭발 등장 후 1.5초에 연기처럼 퍼지며 소멸 */
+@keyframes starburstPopSmoke {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.25) rotate(-14deg);
+    filter:
+      blur(4px)
+      drop-shadow(0 10px 0 rgba(0, 0, 0, 0.9));
+  }
+  7% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.45) rotate(5deg);
+    filter:
+      blur(0px)
+      drop-shadow(0 12px 0 rgba(0, 0, 0, 0.92))
+      drop-shadow(0 18px 24px rgba(0, 0, 0, 0.85));
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.92) rotate(-3deg);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04) rotate(1deg);
+  }
+  28%, 72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    filter:
+      blur(0px)
+      drop-shadow(0 10px 0 rgba(0, 0, 0, 0.92))
+      drop-shadow(0 16px 24px rgba(0, 0, 0, 0.85));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -66%) scale(1.38) rotate(4deg);
+    filter:
+      blur(12px)
+      drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+  }
+}
+
+/* RAISE & ALL-IN 전용: 0.1초(6.7% of 1.5s) 만에 200% 크기로 폭발 -> 탄성 바운스 -> 1.5초 뒤 연기처럼 소멸 */
+@keyframes starburstImpact200Smoke {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(-18deg);
+    filter:
+      blur(6px)
+      brightness(1.8)
+      drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+  }
+  6.7% {
+    /* 정확히 0.1초 시점: 200% 크기로 거대하게 폭발! */
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(2.0) rotate(6deg);
+    filter:
+      blur(0px)
+      brightness(1.35)
+      drop-shadow(0 14px 0 rgba(0, 0, 0, 0.95))
+      drop-shadow(0 0 32px rgba(255, 212, 59, 0.9));
+  }
+  13% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.86) rotate(-4deg);
+    filter:
+      blur(0px)
+      brightness(1.05)
+      drop-shadow(0 10px 0 rgba(0, 0, 0, 0.92));
+  }
+  19% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.14) rotate(2deg);
+  }
+  25%, 70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.0) rotate(0deg);
+    filter:
+      blur(0px)
+      brightness(1)
+      drop-shadow(0 11px 0 rgba(0, 0, 0, 0.95))
+      drop-shadow(0 18px 28px rgba(0, 0, 0, 0.88));
+  }
+  100% {
+    /* 1.5초 시점: 연기처럼 부풀어 오르며 흐릿하게 증발 */
+    opacity: 0;
+    transform: translate(-50%, -68%) scale(1.52) rotate(-5deg);
+    filter:
+      blur(14px)
+      brightness(1.2)
+      drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+  }
+}
+
+/* 1) FOLD: 칙칙하고 무거운 다크 차콜 그레이 폭발 */
+.seat-action-tag.comic-starburst.tag-fold::before {
+  background: #94a3b8;
+}
+.seat-action-tag.comic-starburst.tag-fold::after {
+  background: radial-gradient(circle at center, #64748b 0%, #334155 58%, #0f172a 100%);
+}
+.seat-action-tag.comic-starburst.tag-fold .bubble-label {
+  color: #e2e8f0;
+}
+
+/* 2) CALL & CHECK: 선명하고 경쾌한 에메랄드 그린 폭발 */
+.seat-action-tag.comic-starburst.tag-call::before,
+.seat-action-tag.comic-starburst.tag-check::before {
+  background: #bef264;
+}
+.seat-action-tag.comic-starburst.tag-call::after,
+.seat-action-tag.comic-starburst.tag-check::after {
+  background: radial-gradient(circle at center, #4ade80 0%, #16a34a 55%, #065f46 100%);
+}
+
+/* 3) RAISE: 경고등처럼 시선을 압도하는 파이어 오렌지 & 옐로우 폭발 */
+.seat-action-tag.comic-starburst.tag-raise::before {
+  background: #ffee55;
+}
+.seat-action-tag.comic-starburst.tag-raise::after {
+  background: radial-gradient(circle at center, #ffd43b 0%, #ff922b 38%, #f76707 72%, #c92a2a 100%);
+}
+.seat-action-tag.comic-starburst.tag-raise .bubble-label {
+  color: #fff9db;
+  text-shadow:
+    -2.5px -2.5px 0 #000000,
+     2.5px -2.5px 0 #000000,
+    -2.5px  2.5px 0 #000000,
+     2.5px  2.5px 0 #000000,
+     0px    5px   0 #000000,
+     0px    0px   16px rgba(255, 234, 0, 0.9);
+}
+
+/* 4) ALL-IN: 시뻘건 크림슨 레드 + 번쩍이는 네온 골드 스파크 폭발 */
+.seat-action-tag.comic-starburst.tag-allin::before {
+  background: #ffea00;
+}
+.seat-action-tag.comic-starburst.tag-allin::after {
+  background: radial-gradient(circle at center, #ff4d6d 0%, #ff002b 42%, #9b001a 78%, #3b0008 100%);
+}
+.seat-action-tag.comic-starburst.tag-allin .bubble-label {
+  font-size: 2.2rem;
   color: #ffffff;
-  border: 1px solid #f1948a;
+  text-shadow:
+    -3px -3px 0 #000000,
+     3px -3px 0 #000000,
+    -3px  3px 0 #000000,
+     3px  3px 0 #000000,
+     0px  6px 0 #000000,
+     0px  0px 14px #ffea00,
+     0px  0px 28px #ff002b;
 }
 
-.seat-action-tag.tag-sb {
-  background: linear-gradient(180deg, #3498db 0%, #2980b9 100%);
-  color: #ffffff;
-  border: 1px solid #85c1e9;
+/* 블라인드 안내 스타버스트 (SB / BB) */
+.seat-action-tag.comic-starburst.tag-sb::before {
+  background: #93c5fd;
+}
+.seat-action-tag.comic-starburst.tag-sb::after {
+  background: radial-gradient(circle at center, #60a5fa 0%, #2563eb 60%, #1e3a8a 100%);
 }
 
-.seat-action-tag.tag-bb {
-  background: linear-gradient(180deg, #e67e22 0%, #d35400 100%);
-  color: #ffffff;
-  border: 1px solid #f8c471;
+.seat-action-tag.comic-starburst.tag-bb::before {
+  background: #fde047;
 }
-
-.seat-action-tag.tag-check {
-  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
-  color: #ffffff;
-  border: 1px solid #6ee7b7;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.45);
-}
-
-.seat-action-tag.tag-allin {
-  background: linear-gradient(135deg, #ff2a2a 0%, #b30000 100%);
-  color: #ffffff;
-  border: 1px solid #ff7f50;
-}
-
-@keyframes tagPopAnim {
-  0% { transform: scale(0.6) translateY(5px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
+.seat-action-tag.comic-starburst.tag-bb::after {
+  background: radial-gradient(circle at center, #fbbf24 0%, #d97706 60%, #78350f 100%);
 }
 
 /* ==========================================================================
@@ -1261,21 +1580,21 @@ html, body {
   width: 100%;
   z-index: 100;
   box-sizing: border-box;
-  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)) 16px;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px;
   background: #080c10; /* 카드와 겹쳐 보이지 않는 깔끔한 어두운 배경색 */
   border-top: 1.5px solid rgba(212, 175, 55, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.85);
 }
 
 /* Action Buttons - 입체감 있는 카지노 컨트롤 버튼 */
 .action-btn {
   flex: 1;
-  max-width: 180px;
-  min-width: 80px;
+  max-width: 170px;
+  min-width: 62px;
   height: 54px;
   border-radius: 12px;
   border: 1.5px solid transparent;
@@ -1391,6 +1710,171 @@ html, body {
   }
   100% {
     box-shadow: 0 0 20px rgba(255, 75, 43, 0.85), inset 0 1px 4px rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* ⏱ 시간 연장 (Time Bank: +15초 / 판당 1회) 버튼 */
+.btn-time-bank {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%);
+  border-color: #7dd3fc;
+  box-shadow:
+    0 8px 18px rgba(2, 132, 199, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.btn-time-bank .btn-text {
+  font-size: 0.92rem;
+  letter-spacing: 0.4px;
+}
+
+.btn-time-bank:hover:not(:disabled) {
+  filter: brightness(1.15);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.75);
+}
+
+.btn-time-bank.timebank-used {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  border-color: #475569;
+  opacity: 0.45 !important;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   자리 비움(Sit-Out) 오버레이 및 초대형 '▶ 다시 시작하기' 버튼 모달
+   ========================================================================== */
+.sitout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.sitout-overlay.active {
+  display: flex !important;
+}
+
+.sitout-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 10, 16, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.sitout-box {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 480px;
+  background: radial-gradient(circle at 50% 0%, #172a3a 0%, #091118 100%);
+  border: 2.5px solid #ffd700;
+  border-radius: 26px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.95),
+    0 0 36px rgba(255, 215, 0, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  animation: modalScaleUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.sitout-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.22);
+  border: 1.5px solid #f87171;
+  color: #fca5a5;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.sitout-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.sitout-desc {
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.45;
+  margin: 0 0 22px 0;
+}
+
+.im-back-giant-btn {
+  width: 100%;
+  min-height: 88px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  border: 2.5px solid #bbf7d0;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 52%, #14532d 100%);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow:
+    0 12px 30px rgba(22, 163, 74, 0.65),
+    0 0 28px rgba(74, 222, 128, 0.6),
+    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+  transition: transform 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease;
+  animation: imBackPulse 1.5s ease-in-out infinite alternate;
+}
+
+.im-back-giant-btn:hover {
+  filter: brightness(1.14);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 16px 36px rgba(22, 163, 74, 0.85),
+    0 0 38px rgba(74, 222, 128, 0.9);
+}
+
+.im-back-giant-btn:active {
+  transform: scale(0.97);
+}
+
+.im-back-main {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.im-back-sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #dcfce7;
+}
+
+@keyframes imBackPulse {
+  0% {
+    box-shadow:
+      0 10px 26px rgba(22, 163, 74, 0.55),
+      0 0 20px rgba(74, 222, 128, 0.45),
+      inset 0 2px 2px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow:
+      0 14px 34px rgba(22, 163, 74, 0.85),
+      0 0 34px rgba(74, 222, 128, 0.85),
+      inset 0 2px 3px rgba(255, 255, 255, 0.7);
   }
 }
 
@@ -1820,43 +2304,45 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 /* ==========================================================================
-   Dynamic 3D Chip Stacks (Physical Chip Towers by Denomination)
+   Dynamic 3D Chip Stacks (1.5x Scaled & Dense Mountain Chip Towers)
    ========================================================================== */
 .seat-chip-stack {
-  min-height: 16px;
+  min-height: 24px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   pointer-events: none;
 }
 
 .player-hand-container {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .player-chip-stack {
   margin-bottom: 0;
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 .pot-chip-stacks {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 6px;
-  min-height: 14px;
-  margin-top: 2px;
+  gap: 8px;
+  min-height: 22px;
+  margin-top: 4px;
 }
 
 .chip-stack-container {
   display: inline-flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 0px;
   pointer-events: none;
-  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.75));
+  filter:
+    drop-shadow(0 8px 12px rgba(0, 0, 0, 0.88))
+    drop-shadow(0 3px 4px rgba(0, 0, 0, 0.7));
 }
 
 .chip-column {
@@ -1864,88 +2350,127 @@ body::-webkit-scrollbar-thumb:hover {
   flex-direction: column-reverse; /* bottom-up so higher index sits on top */
   align-items: center;
   position: relative;
+  margin-left: -5px; /* 컬럼 간 촘촘한 산더미 중첩 */
 }
 
+.chip-column:first-child {
+  margin-left: 0;
+}
+
+.chip-column:nth-child(even) {
+  transform: translateY(2px);
+  z-index: 2;
+}
+
+/* 1.5x 확대된 3D 카지노 칩 (기존 20x7px -> 30x11px) 및 수북한 적층 간격 */
 .stacked-chip {
-  width: 20px;
-  height: 7px;
+  width: 30px;
+  height: 11px;
   border-radius: 50%;
   position: relative;
   box-sizing: border-box;
-  margin-top: -4.5px;
-  border: 1.2px dashed rgba(255, 255, 255, 0.92);
+  margin-top: -7.6px;
+  border: 1.8px dashed rgba(255, 255, 255, 0.94);
   box-shadow: 
-    0 2px 0 rgba(0, 0, 0, 0.6),
-    0 2.5px 3px rgba(0, 0, 0, 0.45);
+    0 3px 0 rgba(0, 0, 0, 0.75),
+    0 4px 6px rgba(0, 0, 0, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
   flex-shrink: 0;
   transition: transform 0.2s ease;
+}
+
+/* 실제 카지노에서 손으로 쌓은 듯한 미세한 지그재그 질감 */
+.stacked-chip:nth-child(odd) {
+  transform: translateX(-0.7px);
+}
+
+.stacked-chip:nth-child(3n) {
+  transform: translateX(0.8px);
 }
 
 .stacked-chip::before {
   content: '';
   position: absolute;
-  top: 1px;
-  bottom: 1px;
-  left: 4px;
-  right: 4px;
+  top: 1.5px;
+  bottom: 1.5px;
+  left: 5px;
+  right: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.12) 100%);
 }
 
-/* Denomination colors with realistic 3D edge */
+/* Denomination colors with thick 3D clay chip edge */
 .stacked-chip.chip-10 {
-  background: #2980b9;
-  border-color: #aed6f1;
-  box-shadow: 0 2px 0 #1b4f72, 0 3px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, #3498db 0%, #21618c 100%);
+  border-color: #d6eaf8;
+  box-shadow:
+    0 3px 0 #154360,
+    0 4.5px 6px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
 }
 
 .stacked-chip.chip-50 {
-  background: #c0392b;
-  border-color: #f5b7b1;
-  box-shadow: 0 2px 0 #781005, 0 3px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, #e74c3c 0%, #922b21 100%);
+  border-color: #fadbd8;
+  box-shadow:
+    0 3px 0 #641e16,
+    0 4.5px 6px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
 }
 
 .stacked-chip.chip-100 {
-  background: #27ae60;
-  border-color: #a9dfbf;
-  box-shadow: 0 2px 0 #145a32, 0 3px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, #2ecc71 0%, #1e8449 100%);
+  border-color: #d4efdf;
+  box-shadow:
+    0 3px 0 #0e4b27,
+    0 4.5px 6px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
 }
 
 .stacked-chip.chip-500 {
-  background: #8e44ad;
-  border-color: #d7bde2;
-  box-shadow: 0 2px 0 #512e5f, 0 3px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, #af7ac5 0%, #6c3483 100%);
+  border-color: #ebdef0;
+  box-shadow:
+    0 3px 0 #4a235a,
+    0 4.5px 6px rgba(0, 0, 0, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
 }
 
 .stacked-chip.chip-1000 {
-  background: radial-gradient(circle at 40% 40%, #ffd700 0%, #b8860b 60%, #1a1a1a 100%);
+  background: radial-gradient(circle at 40% 40%, #ffe066 0%, #d4af37 55%, #2b1d03 100%);
   border-color: #ffffff;
-  box-shadow: 0 2px 0 #7d6608, 0 3px 5px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    0 3px 0 #7d6608,
+    0 5px 7px rgba(0, 0, 0, 0.8),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.75);
 }
 
 /* ==========================================================================
-   Flying Chip Animation (Gliding between Seats and Pot)
+   Flying Chip Animation (1.5x Scaled Gliding between Seats and Pot)
    ========================================================================== */
 .flying-chip {
   position: fixed;
   z-index: 9999;
-  width: 22px;
-  height: 14px;
+  width: 33px;
+  height: 21px;
   border-radius: 50%;
   pointer-events: none;
-  border: 1.5px dashed rgba(255, 255, 255, 0.95);
+  border: 2.2px dashed rgba(255, 255, 255, 0.96);
   box-sizing: border-box;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.75),
+    0 8px 16px rgba(0, 0, 0, 0.85);
   will-change: transform, opacity;
 }
 
 .flying-chip::before {
   content: '';
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 4px;
-  right: 4px;
+  top: 3px;
+  bottom: 3px;
+  left: 6px;
+  right: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.45);
 }
